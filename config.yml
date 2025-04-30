@@ -1,0 +1,13 @@
+data:
+  image_dirs:     
+  - ./dataverse_files/HAM10000_images_part_1
+  - ./dataverse_files/HAM10000_images_part_2
+  metadata_path: "./dataverse_files/HAM10000_metadata"
+  image_size: 256
+  val_split: 0.15
+  test_split: 0.15
+
+training:
+  batch_size: 32
+  num_workers: 4
+  seed: 42
