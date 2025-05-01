@@ -11,3 +11,12 @@ training:
   batch_size: 32
   num_workers: 4
   seed: 42
+
+train_autoencoder:
+  epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  patience: 5
+  min_delta: 0.01
+  save_path: "./salve_model/autoencoder.pth"
+  
