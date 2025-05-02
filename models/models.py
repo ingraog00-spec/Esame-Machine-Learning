@@ -33,3 +33,9 @@ class ConvAutoencoder(nn.Module):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
+    
+    def encode(self, x):
+        return self.encoder(x)
+    
+    def decode(self, encoded):
+        return self.decoder(encoded)

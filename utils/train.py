@@ -15,8 +15,9 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     weight_decay = cfg.get("weight_decay", 0)
     patience = cfg.get("patience", 5)
     min_delta = cfg.get("min_delta", 0.01)
-    save_path = cfg.get("save_path", "autoencoder.pth")
-    save_dir = os.path.dirname(save_path)
+    save_path = cfg.get("save_path", "autoencoder.pt")
+    save_reconstructions = cfg.get("save_reconstructions", "reconstructions/")
+    save_dir = os.path.dirname(save_reconstructions)
     os.makedirs(save_dir, exist_ok=True)
 
     criterion = nn.MSELoss()

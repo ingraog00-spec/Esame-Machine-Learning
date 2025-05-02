@@ -3,7 +3,7 @@ import pandas as pd
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
-from utils import stratified_split
+from utils.utils import stratified_split
 import yaml
 
 class SkinLesionDataset(Dataset):

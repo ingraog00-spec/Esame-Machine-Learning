@@ -2,6 +2,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import torchvision
 import torch
+from tqdm import tqdm
 
 def stratified_split(df, val_size, test_size, seed):
     train_val_df, test_df = train_test_split(
