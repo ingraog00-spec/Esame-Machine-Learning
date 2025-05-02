@@ -18,11 +18,12 @@ train_autoencoder:
   weight_decay: 0.001
   patience: 5
   min_delta: 0.01
-  save_path: "./salve_model/autoencoder.pt"
-  save_reconstruction: "./reconstruction"
-  
+  save_path: "./save_model_autoencoder/autoencoder.pt"
+  save_reconstruction: "./reconstructions"
+
 train_classifier:
   epochs: 1
   learning_rate: 0.001
   batch_size: 32
-  save_path: "save_model_classifier/classifier.pt"
+  save_path: "./save_model_classifier/classifier.pt"
+

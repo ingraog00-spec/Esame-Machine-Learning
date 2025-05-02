@@ -1,5 +1,5 @@
 dataverse_files/
 idee.txt
 reconstructions/
-salve_model/
-salve_model_classifier/
+save_model_autoencoder/
+save_model_classifier/

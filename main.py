@@ -1,6 +1,6 @@
 from dataset.dataset import get_dataloaders
 from utils.utils import show_batch_images, plot_class_distribution
-from utils.train import train_autoencoder
+from utils.train_autoencoder import train_autoencoder
 from models.models import ConvAutoencoder
 import torch
 import yaml
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
-    }, "./salve_model/embeddings.pt")
+    }, "./save_model/embeddings.pt")
 
     print("Embeddings salvati in embeddings.pt")
 
@@ -72,6 +72,4 @@ if __name__ == "__main__":
     val_loader_cls = DataLoader(val_dataset, batch_size=32)
 
     # Allenamento classificatore
-    train_classifier(classifier, train_loader_cls, val_loader_cls, config, device)
-
-    
+    train_classifier(classifier, train_loader_cls, val_loader_cls, config, device, experiment)
