@@ -79,6 +79,6 @@ if __name__ == "__main__":
     # Allenamento classificatore
     train_classifier(classifier, train_loader_cls, val_loader_cls, config, device, experiment)
 
-    classifier_load = torch.load(config["train_classifier"]["save_model_classifier"])
+    classifier.load_state_dict(torch.load(config["train_classifier"]["save_path"]))
 
-    test_classifier(classifier_load, test_loader_cls, config, device, experiment)
+    test_classifier(classifier, test_loader_cls, config, device, experiment)
