@@ -5,21 +5,19 @@ This is a machine learning project for classifying skin lesions using an unsuper
 | | |
 | --- | --- |
 | **Description** | Skin lesion classification using an autoencoder for feature extraction and a classifier for final prediction |
-| **Author** | Giovanni Iacuzzo |
-| **Course** | [Machine Learning @ UniKore](https://unikore.it) |
-| **License** | [MIT](https://opensource.org/licenses/MIT) |
+| **Author** | Giovanni Giuseppe Iacuzzo |
+| **Course** | [Machine Learning](https://unikore.it) |
 
 ---
 
 ### Table of Contents
 
-- [Skin Lesion Classification with Autoencoder + Classifier](#skin-lesion-classification-with-autoencoder--classifier)
+- [Skin Lesion Classification](#skin-lesion-classification-with-autoencoder--classifier)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Requirements](#requirements)
   - [Code structure](#code-structure)
   - [Usage](#usage)
-  - [License](#license)
 
 ---
 
@@ -75,9 +73,9 @@ Esame-Machine-Learning/
 │   ├── feature_extraction.py    # Embedding extraction using autoencoder
 │   ├── test.py                  # Evaluation script
 │
-├── save_model/                  # Saved embeddings and models
-├── save_model_autoencoder/                  # Saved embeddings and models
-├── save_model_classidier/                  # Saved embeddings and models
+├── save_model/                  # Saved embeddings model
+├── save_model_autoencoder/      # Saved autoencoder model
+├── save_model_classidier/       # Saved classifier model
 │
 ├── config.yml                   # Training and model configuration file
 ├── requirements.txt             # List of required Python packages
@@ -92,7 +90,6 @@ To reproduce the project, follow these steps:
 ```bash
 git clone [your-repository-url]
 cd Esame-Machine-Learning
-bash prepare.sh
 python main.py
-You can modify the training parameters and paths in the config.yml file.
 ```
+You can modify the training parameters and paths in the config.yml file.
