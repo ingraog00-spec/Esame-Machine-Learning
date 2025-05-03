@@ -1,3 +1,4 @@
+import comet_ml
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -81,7 +82,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.tight_layout()
-    confusion_matrix_path = "confusion_matrix.png"
+    confusion_matrix_path = "./reconstructions/confusion_matrix.png"
     plt.savefig(confusion_matrix_path)
     experiment.log_image(confusion_matrix_path)
 
@@ -92,6 +93,6 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.ylabel("Loss")
     plt.grid(True)
     plt.tight_layout()
-    loss_curve_path = "train_loss_curve.png"
+    loss_curve_path = "./reconstructions/train_loss_curve.png"
     plt.savefig(loss_curve_path)
     experiment.log_image(loss_curve_path)

@@ -1,7 +1,8 @@
+import comet_ml
 from dataset.dataset import get_dataloaders
 from utils.utils import show_batch_images, plot_class_distribution
 from utils.train_autoencoder import train_autoencoder
-from models.models import ConvAutoencoder
+from models.models_autoencoder import ConvAutoencoder
 import torch
 import yaml
 from comet_ml import Experiment
