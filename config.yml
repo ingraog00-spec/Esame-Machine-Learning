@@ -27,3 +27,7 @@ train_classifier:
   batch_size: 32
   save_path: "./save_model_classifier/classifier.pt"
 
+test_classifier:
+  batch_size: 32
+  embeddings_path: "./save_model/embeddings.pt"
+  classifier_path: "./save_model_classifier/classifier.pt"

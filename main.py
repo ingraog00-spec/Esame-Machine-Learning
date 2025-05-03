@@ -10,6 +10,7 @@ from utils.feature_extraction import extract_embeddings
 from utils.train_classifier import train_classifier
 from models.model_classifier import Classifier
 from torch.utils.data import DataLoader, TensorDataset
+from utils.test import test_classifier
 
 if __name__ == "__main__":
     experiment = Experiment()
@@ -64,13 +65,20 @@ if __name__ == "__main__":
     # Stack embeddings
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
+    test_labels = torch.tensor(test_labels)
 
     # Crea direttamente i DataLoader
     train_dataset = TensorDataset(train_embeddings, train_labels)
     val_dataset = TensorDataset(val_embeddings, val_labels)
+    test_dataset = TensorDataset(test_embeddings, test_labels)
 
     train_loader_cls = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader_cls = DataLoader(val_dataset, batch_size=32)
+    test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
     # Allenamento classificatore
     train_classifier(classifier, train_loader_cls, val_loader_cls, config, device, experiment)
+
+    classifier_load = torch.load(config["train_classifier"]["save_model_classifier"])
+
+    test_classifier(classifier_load, test_loader_cls, config, device, experiment)
