@@ -2,7 +2,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import torchvision
 import torch
-from tqdm import tqdm
+import io
 
 def stratified_split(df, val_size, test_size, seed):
     train_val_df, test_df = train_test_split(
@@ -21,16 +21,23 @@ def stratified_split(df, val_size, test_size, seed):
     )
     return train_df, val_df, test_df
 
-def show_batch_images(images, labels, label_map, title=""):
+def show_batch_images(images, labels, label_map, title="", experiment=None):
     grid_img = torchvision.utils.make_grid(images[:16], nrow=4, normalize=True)
     plt.figure(figsize=(8, 8))
     plt.imshow(grid_img.permute(1, 2, 0))
     label_names = [label_map[l.item()] for l in labels[:16]]
     plt.title(f"{title}\n" + ", ".join(label_names))
     plt.axis("off")
+    
+    if experiment:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
+        buf.close()
     plt.show()
 
-def plot_class_distribution(loader, label_map, title="Distribuzione Classi"):
+def plot_class_distribution(loader, label_map, title="Distribuzione Classi", experiment=None):
     label_counts = torch.zeros(len(label_map), dtype=torch.int32)
     for _, labels in loader:
         for l in labels:
@@ -44,4 +51,11 @@ def plot_class_distribution(loader, label_map, title="Distribuzione Classi"):
     plt.ylabel("Frequenza")
     plt.xticks(rotation=45)
     plt.tight_layout()
+
+    if experiment:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
+        buf.close()
     plt.show()

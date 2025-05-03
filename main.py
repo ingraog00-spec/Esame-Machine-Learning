@@ -23,18 +23,18 @@ if __name__ == "__main__":
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
-    """ print("- Visualizzo un batch dal train loader")
+    print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
-    show_batch_images(images, labels, inv_label_map, title="Batch di Training")
+    show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
     print("- Distribuzione delle classi nel training set:")
-    plot_class_distribution(train_loader, inv_label_map, title="Distribuzione Classi - Train")
+    plot_class_distribution(train_loader, inv_label_map, title="Distribuzione Classi - Train", experiment=experiment)
 
     print("- Distribuzione delle classi nel validation set:")
-    plot_class_distribution(val_loader, inv_label_map, title="Distribuzione Classi - Validation")
+    plot_class_distribution(val_loader, inv_label_map, title="Distribuzione Classi - Validation", experiment=experiment)
 
     print("- Distribuzione delle classi nel test set:")
-    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test") """
+    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
     autoencoder = ConvAutoencoder(encoded_space_dim=256)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,17 +42,14 @@ if __name__ == "__main__":
 
     train_autoencoder(autoencoder, train_loader, config, device, experiment)
 
-    # Carica il modello salvato
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
     autoencoder.to(device)
     autoencoder.eval()
 
-    # Estrai embeddings
     train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device)
     val_embeddings, val_labels = extract_embeddings(autoencoder, val_loader, device)
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
 
-    # Salva su disco
     torch.save({
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
@@ -62,12 +59,10 @@ if __name__ == "__main__":
     print("Embeddings salvati in embeddings.pt")
 
     classifier = Classifier(input_dim=256, num_classes=7)
-    # Stack embeddings
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)
 
-    # Crea direttamente i DataLoader
     train_dataset = TensorDataset(train_embeddings, train_labels)
     val_dataset = TensorDataset(val_embeddings, val_labels)
     test_dataset = TensorDataset(test_embeddings, test_labels)
@@ -76,7 +71,6 @@ if __name__ == "__main__":
     val_loader_cls = DataLoader(val_dataset, batch_size=32)
     test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
-    # Allenamento classificatore
     train_classifier(classifier, train_loader_cls, val_loader_cls, config, device, experiment)
 
     classifier.load_state_dict(torch.load(config["train_classifier"]["save_path"]))
