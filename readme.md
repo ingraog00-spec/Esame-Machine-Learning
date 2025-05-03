@@ -56,7 +56,9 @@ To install the requirements:
 
 ```bash
 pip install -r requirements.txt
-
+```
+### Code structure
+```bash
 Esame-Machine-Learning/
 │
 ├── dataset/
@@ -82,12 +84,15 @@ Esame-Machine-Learning/
 ├── prepare.sh                   # Script to prepare the environment
 ├── main.py                      # Full pipeline execution script
 └── README.md                    # Project documentation
+```
 
-Usage
+### Usage
 To reproduce the project, follow these steps:
 
+```bash
 git clone [your-repository-url]
 cd Esame-Machine-Learning
 bash prepare.sh
 python main.py
 You can modify the training parameters and paths in the config.yml file.
+```
