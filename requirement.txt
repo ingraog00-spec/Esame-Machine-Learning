@@ -6,3 +6,5 @@ pandas
 Pillow
 pyyaml
 matplotlib
+seaborn
+comet_ml
