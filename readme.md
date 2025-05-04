@@ -56,6 +56,7 @@ To install the requirements:
 pip install -r requirements.txt
 ```
 ### Code structure
+
 ```bash
 Esame-Machine-Learning/
 │
@@ -79,8 +80,9 @@ Esame-Machine-Learning/
 │
 ├── config.yml                   # Training and model configuration file
 ├── requirements.txt             # List of required Python packages
-├── prepare.sh                   # Script to prepare the environment
+├── .comet.config                # Configuration for comet.ml 
 ├── main.py                      # Full pipeline execution script
+│
 └── README.md                    # Project documentation
 ```
 
