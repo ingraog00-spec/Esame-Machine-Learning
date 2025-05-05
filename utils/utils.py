@@ -94,7 +94,7 @@ def tsne_visualization(embeddings, labels, inv_label_map, experiment, title="t-S
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
 
-    save_path = "tsne_latent_space.png"
+    save_path = "./images/tsne_latent_space.png"
     plt.savefig(save_path)
     experiment.log_image(save_path, name="TSNE Latent Space")
     plt.close()

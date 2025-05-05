@@ -88,7 +88,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         plt.ylabel("Loss")
         plt.grid(True)
         plt.tight_layout()
-        loss_curve_path = os.path.join(save_reconstructions_dir, "autoencoder_loss_curve.png")
+        loss_curve_path = os.path.join("./images", "autoencoder_loss_curve.png")
         plt.savefig(loss_curve_path)
         experiment.log_image(loss_curve_path)
 
