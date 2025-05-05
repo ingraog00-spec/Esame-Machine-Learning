@@ -1,6 +1,6 @@
 import comet_ml
 from dataset.dataset import get_dataloaders
-from utils.utils import show_batch_images, plot_class_distribution
+from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split
 from utils.train_autoencoder import train_autoencoder
 from models.models_autoencoder import ConvAutoencoder
 import torch
@@ -14,7 +14,7 @@ from utils.test import test_classifier
 
 if __name__ == "__main__":
     experiment = Experiment()
-    experiment.set_name("Autoencoder_Skin_Lesion")
+    experiment.set_name("test")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
-    print("- Visualizzo un batch dal train loader")
+    """  print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
@@ -36,6 +36,8 @@ if __name__ == "__main__":
     print("- Distribuzione delle classi nel test set:")
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
+    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
+
     autoencoder = ConvAutoencoder(encoded_space_dim=256)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -46,11 +48,17 @@ if __name__ == "__main__":
     autoencoder.to(device)
     autoencoder.eval()
 
+    print("- Estrazione degli embeddings per t-SNE")
+    from utils.utils import tsne_visualization
+
+
+
     train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device)
+    tsne_visualization(train_embeddings, train_labels, inv_label_map, experiment)
     val_embeddings, val_labels = extract_embeddings(autoencoder, val_loader, device)
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
 
-    torch.save({
+    """ torch.save({
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
@@ -75,4 +83,4 @@ if __name__ == "__main__":
 
     classifier.load_state_dict(torch.load(config["train_classifier"]["save_path"]))
 
-    test_classifier(classifier, test_loader_cls, config, device, experiment)
+    test_classifier(classifier, test_loader_cls, config, device, experiment) """
