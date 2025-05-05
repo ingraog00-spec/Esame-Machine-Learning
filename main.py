@@ -11,6 +11,7 @@ from utils.train_classifier import train_classifier
 from models.model_classifier import Classifier
 from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
+from utils.utils import tsne_visualization
 
 if __name__ == "__main__":
     experiment = Experiment()
@@ -38,7 +39,7 @@ if __name__ == "__main__":
 
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
-    autoencoder = ConvAutoencoder(encoded_space_dim=256)
+    autoencoder = ConvAutoencoder(encoded_space_dim=128)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -49,14 +50,14 @@ if __name__ == "__main__":
     autoencoder.eval()
 
     print("- Estrazione degli embeddings per t-SNE")
-    from utils.utils import tsne_visualization
-
-
-
     train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device)
-    tsne_visualization(train_embeddings, train_labels, inv_label_map, experiment)
+    tsne_visualization(train_embeddings, train_labels, inv_label_map, experiment, "t-SNE of Train Set")
+
     val_embeddings, val_labels = extract_embeddings(autoencoder, val_loader, device)
+    tsne_visualization(val_embeddings, val_labels, inv_label_map, experiment, "t-SNE of Validation Set")
+
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
+    tsne_visualization(test_embeddings, test_labels, inv_label_map, experiment, "t-SNE of Test Set")
 
     """ torch.save({
         "train": (train_embeddings, train_labels),
@@ -66,7 +67,7 @@ if __name__ == "__main__":
 
     print("Embeddings salvati in embeddings.pt")
 
-    classifier = Classifier(input_dim=256, num_classes=7)
+    classifier = Classifier(input_dim=128, num_classes=7)
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)
