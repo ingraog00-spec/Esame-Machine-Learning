@@ -59,7 +59,7 @@ if __name__ == "__main__":
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
     tsne_visualization(test_embeddings, test_labels, inv_label_map, experiment, "t-SNE of Test Set")
 
-    """ torch.save({
+    torch.save({
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
@@ -84,4 +84,4 @@ if __name__ == "__main__":
 
     classifier.load_state_dict(torch.load(config["train_classifier"]["save_path"]))
 
-    test_classifier(classifier, test_loader_cls, config, device, experiment) """
+    test_classifier(classifier, test_loader_cls, config, device, experiment)
