@@ -80,8 +80,13 @@ Esame-Machine-Learning/
 │
 ├── config.yml                   # Training and model configuration file
 ├── requirements.txt             # List of required Python packages
-├── .comet.config                # Configuration for comet.ml 
-├── main.py                      # Full pipeline execution script
+├── .comet.config                # Configuration for comet.ml
+│
+├── main.py                      # Full pipeline execution script for DNN
+│
+├── extract_features.py          # Exstract features for all images in dataverse_file
+├── vision_embeddings.py         # Extract embeddings from vision models
+├── main_XGB_classifier.py       # Model XGB Classifier
 │
 └── README.md                    # Project documentation
 ```
@@ -92,6 +97,7 @@ To reproduce the project, follow these steps:
 ```bash
 git clone [your-repository-url]
 cd Esame-Machine-Learning
+bash prepare.sh
 python main.py
 ```
 You can modify the training parameters and paths in the config.yml file.
