@@ -103,12 +103,12 @@ python main.py
 
 Esecuzione pipeline XGBoost
 
-- 1. Estrazione feature da immagini con Vision Transformer:
+- Estrazione feature da immagini con Vision Transformer:
 ```bash
 python extract_features.py
 ```
 
-- 2. Addestramento e valutazione XGBoost:
+- Addestramento e valutazione XGBoost:
 ```bash
 python main_XGB_classifier.py
 ```
