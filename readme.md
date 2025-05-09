@@ -93,8 +93,9 @@ Esame-Machine-Learning/
 ```
 ---
 
-## ⚙️ Utilizzo
-Esecuzione pipeline Deep Learning
+## ⚙️ Utilizzo
+
+Per eseguire l'intera pipeline basata su rete neurale (autoencoder + classificatore):
 
 ```bash
 python main.py
