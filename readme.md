@@ -56,6 +56,7 @@ Per installare i requisiti:
 ```bash
 pip install -r requirements.txt
 ```
+---
 
 ## 📁 Struttura del Codice
 
@@ -90,6 +91,7 @@ Esame-Machine-Learning/
 │
 └── README.md
 ```
+---
 
 ## ⚙️ Utilizzo
 Esecuzione pipeline Deep Learning
@@ -109,6 +111,7 @@ python extract_features.py
 ```bash
 python main_XGB_classifier.py
 ```
+---
 
 ## 🔄 Confronto tra i Modelli
 
