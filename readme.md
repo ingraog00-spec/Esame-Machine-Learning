@@ -58,7 +58,7 @@ pip install -r requirements.txt
 ```
 ---
 
-## ⚙️ Struttura del Codice
+## 📁  Struttura del Codice
 
 ```bash
 Esame-Machine-Learning/
