@@ -1,103 +1,158 @@
-## Skin Lesion Classification
+# Skin Lesion Classification
 
-This is a machine learning project for classifying skin lesions using an unsupervised feature extractor (autoencoder) followed by a classifier. The project is based on PyTorch and uses the Comet ML platform for experiment tracking.
+Questo progetto affronta la classificazione di immagini dermatoscopiche di lesioni cutanee mediante due approcci distinti:  
+1. Una pipeline **Deep Learning** basata su Autoencoder Convoluzionale.
+2. Una pipeline **XGBoost** che utilizza feature estratte da un **Vision Transformer (ViT)** pre-addestrato.
+
+Il tracciamento degli esperimenti è gestito tramite [Comet ML](https://www.comet.com/). Il progetto è sviluppato in PyTorch e scikit-learn.
 
 | | |
 | --- | --- |
-| **Description** | Skin lesion classification using an autoencoder for feature extraction and a classifier for final prediction |
-| **Author** | Giovanni Giuseppe Iacuzzo |
-| **Course** | [Machine Learning](https://unikore.it) |
+| **Progetto** | Skin lesion classification using Deep Learning and XGBoost |
+| **Autore** | Giovanni Giuseppe Iacuzzo |
+| **Corso** | [Machine Learning](https://unikore.it) |
 
 ---
 
-### Table of Contents
+## 📌 Indice
 
-- [Skin Lesion Classification](#skin-lesion-classification-with-autoencoder--classifier)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Requirements](#requirements)
-  - [Code structure](#code-structure)
-  - [Usage](#usage)
-
----
-
-### Introduction
-
-This project performs classification of dermoscopic skin lesion images using a two-step approach:
-1. A **Convolutional Autoencoder** is trained to learn compressed image representations (embeddings).
-2. A **Feedforward Classifier** is trained on those embeddings to predict the lesion type.
-
-The dataset used in the project contains labeled images of skin lesions, split in a stratified way into training, validation, and test sets.
-
-The entire training and evaluation pipeline is tracked and visualized using [Comet ML](https://www.comet.com/).
-
-The main script is `main.py`, which runs the full pipeline:
-- Load and split the dataset
-- Train the autoencoder
-- Extract and save embeddings
-- Train the classifier on embeddings
-- Evaluate the classifier on the test set
+- [Introduzione](#introduzione)
+- [Requisiti](#requisiti)
+- [Struttura del codice](#struttura-del-codice)
+- [Utilizzo](#utilizzo)
+- [Confronto tra i modelli](#confronto-tra-i-modelli)
 
 ---
 
-### Requirements
+## 🧠 Introduzione
 
-The project runs on **Python 3.11+** and uses the following key libraries:
-- `torch` and `torchvision` for model training and data handling
-- `matplotlib` and `seaborn` for visualization
-- `scikit-learn` for metrics and preprocessing
-- `comet_ml` for experiment tracking
-- `PyYAML` for configuration handling
-- `tqdm` for progress bars
+Il progetto ha l'obiettivo di classificare le lesioni cutanee in base alle immagini. Sono stati implementati e confrontati due approcci:
 
-To install the requirements:
+### 1. Pipeline Deep Learning
+- Addestramento di un **Autoencoder Convoluzionale** per l'estrazione non supervisionata di embedding.
+- Un **Classificatore Feedforward** viene addestrato sugli embedding per la classificazione.
+
+### 2. Pipeline XGBoost
+- Estrazione delle feature dalle immagini usando un **Vision Transformer (ViT)** pre-addestrato.
+- Le feature vengono utilizzate per addestrare un **classificatore XGBoost**, con ottimizzazione iperparametrica tramite **GridSearchCV**.
+
+Entrambi gli approcci sono valutati su dataset suddiviso in modo stratificato (train, validation, test).
+
+---
+
+## 📦 Requisiti
+
+Il progetto richiede **Python 3.11+**. Le principali librerie utilizzate includono:
+
+- `torch`, `torchvision` — per la rete neurale
+- `transformers` — per l’estrazione feature con ViT
+- `scikit-learn`, `xgboost` — per classificazione classica ed evaluation
+- `matplotlib`, `seaborn` — per la visualizzazione
+- `comet_ml` — per il tracciamento degli esperimenti
+- `PyYAML`, `tqdm`, `joblib`, `PIL` — utilità varie
+
+Per installare i requisiti:
 
 ```bash
 pip install -r requirements.txt
 ```
-### Code structure
+
+## 📁 Struttura del Codice
 
 ```bash
 Esame-Machine-Learning/
 │
 ├── dataset/
-│   ├── dataset.py               # Dataset loading and stratified splitting
+│   └── dataset.py                  # Caricamento e suddivisione del dataset
 │
 ├── models/
-│   ├── models_autoencoder.py    # Autoencoder architecture
-│   ├── model_classifier.py      # Classifier architecture
+│   ├── models_autoencoder.py       # Architettura autoencoder
+│   └── model_classifier.py         # Classificatore feedforward
 │
 ├── utils/
-│   ├── utils.py                 # Visualization and utility functions
-│   ├── train_autoencoder.py     # Autoencoder training logic
-│   ├── train_classifier.py      # Classifier training logic
-│   ├── feature_extraction.py    # Embedding extraction using autoencoder
-│   ├── test.py                  # Evaluation script
+│   ├── utils.py                    # Utility e visualizzazioni
+│   ├── train_autoencoder.py        # Addestramento autoencoder
+│   ├── train_classifier.py         # Addestramento classificatore
+│   ├── feature_extraction.py       # Estrazione embedding dall’autoencoder
+│   └── test.py                     # Script di valutazione
 │
-├── save_model/                  # Saved embeddings model
-├── save_model_autoencoder/      # Saved autoencoder model
-├── save_model_classidier/       # Saved classifier model
+├── vision_embeddings.py            # Estrazione embedding da ViT
+├── extract_features.py             # Estrazione feature da immagini con ViT
 │
-├── config.yml                   # Training and model configuration file
-├── requirements.txt             # List of required Python packages
-├── .comet.config                # Configuration for comet.ml
+├── main.py                         # Pipeline completa per DL
+├── main_XGB_classifier.py          # Pipeline XGBoost
 │
-├── main.py                      # Full pipeline execution script for DNN
+├── save_model*/                    # Modelli salvati
 │
-├── extract_features.py          # Exstract features for all images in dataverse_file
-├── vision_embeddings.py         # Extract embeddings from vision models
-├── main_XGB_classifier.py       # Model XGB Classifier
+├── config.yml                      # Configurazione parametri
+├── requirements.txt                # Librerie da scaricare
+├── .comet.config                   # Config per Comet ML
 │
-└── README.md                    # Project documentation
+└── README.md
 ```
 
-### Usage
-To reproduce the project, follow these steps:
+## ⚙️ Utilizzo
+Esecuzione pipeline Deep Learning
 
 ```bash
-git clone [your-repository-url]
-cd Esame-Machine-Learning
-bash prepare.sh
 python main.py
 ```
-You can modify the training parameters and paths in the config.yml file.
+
+Esecuzione pipeline XGBoost
+
+- 1. Estrazione feature da immagini con Vision Transformer:
+```bash
+python extract_features.py
+```
+
+- 2. Addestramento e valutazione XGBoost:
+```bash
+python main_XGB_classifier.py
+```
+
+## 🔄 Confronto tra i Modelli
+
+Il progetto prevede il confronto tra due approcci distinti per la classificazione delle lesioni cutanee:
+
+## 🔄 Confronto tra i Modelli
+
+Per valutare l'efficacia di diversi approcci nella classificazione delle lesioni cutanee, sono stati implementati e confrontati due modelli distinti:
+
+---
+
+### 📘 Approccio 1 — Autoencoder + Classificatore Neurale
+
+Questo approccio utilizza un **Autoencoder Convoluzionale** per apprendere rappresentazioni latenti (embedding) delle immagini, seguito da un **classificatore fully-connected** addestrato su tali embedding.
+
+- **Caratteristiche**:
+  - L’autoencoder è addestrato in modo non supervisionato sui dati del dataset, il che permette di ottenere feature apprese direttamente dalle immagini delle lesioni.
+  - Il classificatore opera nello spazio latente, cercando di distinguere le classi a partire da rappresentazioni compresse ma informative.
+
+- **Obiettivo**:
+  - Sfruttare la capacità dell’autoencoder di estrarre feature significative legate al dominio medico, con una pipeline interamente progettata e addestrata ad hoc.
+
+---
+
+### 🤖 Approccio 2 — Vision Transformer + XGBoost
+
+Il secondo modello sfrutta **ViT (Vision Transformer)** pre-addestrato su ImageNet per l’estrazione di embedding visivi, seguiti da un classificatore **XGBoost**, ottimizzato tramite (`GridSearchCV`).
+
+- **Caratteristiche**:
+  - Il Vision Transformer fornisce rappresentazioni ad alto livello già apprese da un modello generalista e potente.
+  - XGBoost, noto per la sua robustezza e interpretabilità, viene addestrato sulle feature estratte per eseguire la classificazione.
+
+- **Obiettivo**:
+  - Valutare la performance di un approccio ibrido che combina modelli pre-addestrati di visione artificiale con tecniche di apprendimento supervisionato classiche.
+
+---
+
+### 📊 Riepilogo
+
+| Caratteristica                 | Autoencoder + NN                     | ViT + XGBoost                             |
+|-------------------------------|--------------------------------------|-------------------------------------------|
+| Estrazione delle feature      | Autoencoder convoluzionale           | Vision Transformer (`google/vit-base`)    |
+| Classificatore                | Rete neurale fully-connected         | XGBoost (con GridSearchCV)                |
+| Tipo di feature               | Apprese dai dati del dataset         | Pre-addestrate su ImageNet                |
+| Complessità di addestramento | Medio-alta                           | Bassa (solo XGBoost viene addestrato)     |
+| Flessibilità                  | Alta: pipeline personalizzabile      | Media: feature extractor fisso            |
+| Interpretabilità              | Limitata                             | Alta (importanza delle feature)           |
