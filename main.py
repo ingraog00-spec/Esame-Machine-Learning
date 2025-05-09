@@ -15,7 +15,7 @@ from utils.utils import tsne_visualization
 
 if __name__ == "__main__":
     experiment = Experiment()
-    experiment.set_name("test")
+    experiment.set_name("Autoencoder + Classifier")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
