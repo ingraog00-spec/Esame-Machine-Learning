@@ -18,7 +18,7 @@ Il tracciamento degli esperimenti è gestito tramite [Comet ML](https://www.come
 
 - [Introduzione](#introduzione)
 - [Requisiti](#requisiti)
-- [Struttura del codice](#struttura-del-codice)
+- [Struttura del Codice](#struttura-del-Codice)
 - [Utilizzo](#utilizzo)
 - [Confronto tra i modelli](#confronto-tra-i-modelli)
 
