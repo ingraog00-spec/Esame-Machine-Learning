@@ -2,7 +2,7 @@ import comet_ml
 from dataset.dataset import get_dataloaders
 from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split
 from utils.train_autoencoder import train_autoencoder
-from models.models_autoencoder import ConvAutoencoder
+from models.models_autoencoder import ConvVariationalAutoencoder
 import torch
 import yaml
 from comet_ml import Experiment
@@ -39,10 +39,11 @@ if __name__ == "__main__":
 
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
-    autoencoder = ConvAutoencoder(encoded_space_dim=128)
+    autoencoder = ConvVariationalAutoencoder(latent_dim=128)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    # Training
     train_autoencoder(autoencoder, train_loader, config, device, experiment)
 
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
