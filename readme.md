@@ -1,4 +1,4 @@
-# Skin Lesion Classification
+# 🩸 Skin Lesion Classification
 
 Questo progetto affronta la classificazione di immagini dermatoscopiche di lesioni cutanee mediante due approcci distinti:  
 1. Una pipeline **Deep Learning** basata su Autoencoder Convoluzionale.
@@ -113,11 +113,6 @@ python extract_features.py
 python main_XGB_classifier.py
 ```
 ---
-
-## 🔄 Confronto tra i Modelli
-
-Il progetto prevede il confronto tra due approcci distinti per la classificazione delle lesioni cutanee:
-
 ## 🔄 Confronto tra i Modelli
 
 Per valutare l'efficacia di diversi approcci nella classificazione delle lesioni cutanee, sono stati implementati e confrontati due modelli distinti:
