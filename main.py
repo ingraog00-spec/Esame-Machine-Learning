@@ -37,9 +37,9 @@ if __name__ == "__main__":
     print("- Distribuzione delle classi nel test set:")
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment) """
 
-    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
+    # log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
-    autoencoder = ConvVariationalAutoencoder(latent_dim=128)
+    autoencoder = ConvVariationalAutoencoder(latent_dim=256)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     print("Embeddings salvati in embeddings.pt")
 
-    classifier = Classifier(input_dim=128, num_classes=7)
+    classifier = Classifier(input_dim=256, num_classes=7)
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)

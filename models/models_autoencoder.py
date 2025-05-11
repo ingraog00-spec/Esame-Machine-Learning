@@ -53,7 +53,7 @@ class ConvVariationalAutoencoder(nn.Module):
             nn.BatchNorm2d(32),
 
             nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1),  # [B, 3, 256, 256]
-            nn.Sigmoid()
+            nn.Tanh()
         )
 
     def encode(self, x):

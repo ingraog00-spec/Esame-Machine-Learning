@@ -38,7 +38,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             images = images.to(device)
 
             x_reconstructed, mu, logvar, _ = model(images)
-            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=1.0)
+            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=0.1)
 
             optimizer.zero_grad()
             loss.backward()
