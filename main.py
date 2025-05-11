@@ -8,10 +8,18 @@ import yaml
 from comet_ml import Experiment
 from utils.feature_extraction import extract_embeddings
 from utils.train_classifier import train_classifier
-from models.model_classifier import Classifier
+from models.model_classifier import Classifier, EnsembleClassifier
 from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
 from utils.utils import tsne_visualization
+import random
+import numpy as np
+
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 if __name__ == "__main__":
     experiment = Experiment()
@@ -68,7 +76,6 @@ if __name__ == "__main__":
 
     print("Embeddings salvati in embeddings.pt")
 
-    classifier = Classifier(input_dim=256, num_classes=7)
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)
@@ -81,8 +88,24 @@ if __name__ == "__main__":
     val_loader_cls = DataLoader(val_dataset, batch_size=32)
     test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
-    train_classifier(classifier, train_loader_cls, val_loader_cls, config, device, experiment)
+    n_models = 3
+    ensemble_models = []
 
-    classifier.load_state_dict(torch.load(config["train_classifier"]["save_path"]))
+    for i in range(n_models):
+        print(f"\n--- Training model {i+1}/{n_models} ---")
+        set_seed(42 + i)
+        model = Classifier(input_dim=256, num_classes=7)
+        train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
+        save_path_i = f"{config['train_classifier']['save_path']}_model{i}.pt"
+        torch.save(model.state_dict(), save_path_i)
 
-    test_classifier(classifier, test_loader_cls, config, device, experiment)
+    for i in range(n_models):
+        model = Classifier(input_dim=256, num_classes=7)
+        model.load_state_dict(torch.load(f"{config['train_classifier']['save_path']}_model{i}.pt"))
+        model.to(device)
+        model.eval()
+        ensemble_models.append(model)
+
+    ensemble = EnsembleClassifier(ensemble_models).to(device)
+
+    test_classifier(model = ensemble, data_loader = test_loader_cls, device = device, experiment = experiment, title = "Test Ensemble", log_prefix = "ensemble_test_")

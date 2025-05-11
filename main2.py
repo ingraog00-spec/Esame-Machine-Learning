@@ -1,3 +1,4 @@
+import comet_ml
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from comet_ml import Experiment
@@ -33,9 +34,8 @@ test_labels = torch.tensor(test_labels)
 embeddings = torch.cat([train_embeddings, val_embeddings, test_embeddings], dim=0)
 labels = torch.cat([train_labels, val_labels, test_labels], dim=0)
 
-print(f"Embeddings shape: {embeddings.shape}")
-print(f"Labels shape: {labels.shape}")
-
+""" print(f"Embeddings shape: {embeddings.shape}")
+print(f"Labels shape: {labels.shape}") """
 
 train_dataset = TensorDataset(train_embeddings, train_labels)
 val_dataset = TensorDataset(val_embeddings, val_labels)
@@ -47,8 +47,6 @@ test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
 experiment = Experiment()
 experiment.set_name("test del classificatore")
-
-model = Classifier(input_dim=embeddings.shape[1], num_classes=7)
 
 n_models = 3
 ensemble_models = []
