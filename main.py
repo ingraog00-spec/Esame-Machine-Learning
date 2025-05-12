@@ -32,7 +32,7 @@ if __name__ == "__main__":
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
-    """  print("- Visualizzo un batch dal train loader")
+    print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
@@ -43,15 +43,14 @@ if __name__ == "__main__":
     plot_class_distribution(val_loader, inv_label_map, title="Distribuzione Classi - Validation", experiment=experiment)
 
     print("- Distribuzione delle classi nel test set:")
-    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment) """
+    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
-    # log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
+    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
     autoencoder = ConvVariationalAutoencoder(latent_dim=256)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Training
     train_autoencoder(autoencoder, train_loader, config, device, experiment)
 
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     val_loader_cls = DataLoader(val_dataset, batch_size=32)
     test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
-    n_models = 3
+    n_models = config["train_classifier"]["n_models"]
     ensemble_models = []
 
     for i in range(n_models):

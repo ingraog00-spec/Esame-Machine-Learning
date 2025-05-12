@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class ResidualBlock(nn.Module):
-    def __init__(self, dim, dropout=0.2):
+    def __init__(self, dim, dropout=0.3):
         super().__init__()
         self.layer = nn.Sequential(
             nn.Linear(dim, dim),
@@ -18,11 +18,11 @@ class Classifier(nn.Module):
     def __init__(self, input_dim=256, num_classes=7):
         super().__init__()
         self.input = nn.Sequential(
-            nn.Linear(input_dim, 512),       # Espansione
+            nn.Linear(input_dim, 512),
             nn.LayerNorm(512),
             nn.ReLU(),
             nn.Dropout(0.4),
-            nn.Linear(512, 256),             # Compressione
+            nn.Linear(512, 256),
             nn.LayerNorm(256),
             nn.ReLU(),
             nn.Dropout(0.3)
@@ -44,7 +44,6 @@ class Classifier(nn.Module):
         x = self.resblocks(x)
         return self.output(x)
 
-# Ensemble di più classificatori
 class EnsembleClassifier(nn.Module):
     def __init__(self, models):
         super().__init__()
@@ -54,7 +53,6 @@ class EnsembleClassifier(nn.Module):
         logits = [model(x) for model in self.models]
         return torch.stack(logits).mean(dim=0)
 
-# Loss con Label Smoothing
 class LabelSmoothingLoss(nn.Module):
     def __init__(self, smoothing=0.1):
         super().__init__()

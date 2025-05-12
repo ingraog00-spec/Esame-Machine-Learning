@@ -26,6 +26,7 @@ train_classifier:
   learning_rate: 0.001
   batch_size: 32
   save_path: "./save_model_classifier/classifier.pt"
+  n_models: 10
 
 test_classifier:
   batch_size: 32
