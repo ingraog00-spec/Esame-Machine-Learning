@@ -5,13 +5,16 @@ import joblib
 import time
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 from xgboost import XGBClassifier
+from comet_ml import Experiment
 
 def print_step(msg):
     print(f"\n{msg}\n{'='*60}")
 
 def main():
+    experiment = Experiment()
+    experiment.set_name("XGBCLassifier")
     start_time = time.time()
 
     print_step("1. Caricamento dei dati")
@@ -40,7 +43,7 @@ def main():
         'subsample': [0.8, 1.0],
         'colsample_bytree': [0.8, 1.0]
     }
-
+    experiment.log_parameters(param_grid)
     xgb = XGBClassifier(
         use_label_encoder=False,
         eval_metric="mlogloss",
@@ -57,6 +60,9 @@ def main():
     )
 
     grid_search.fit(X_train, y_train)
+    experiment.log_metric("best_score", grid_search.best_score_)
+    experiment.log_parameters(grid_search.best_params_)
+
 
     print_step("4. Risultati GridSearch")
     print(f"Best Score: {grid_search.best_score_:.4f}")
@@ -69,6 +75,18 @@ def main():
 
     print("Classification Report:\n")
     print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
+
+    accuracy = accuracy_score(y_test, y_pred, average='macro')
+    precision = precision_score(y_test, y_pred, average='macro')
+    recall = recall_score(y_test, y_pred, average='macro')
+    f1 = f1_score(y_test, y_pred, average='macro')
+
+    experiment.log_metrics({
+        "test_accuracy": accuracy,
+        "test_precision": precision,
+        "test_recall": recall,
+        "test_f1": f1
+    })
 
     print_step("6. Creazione Confusion Matrix")
     cm = confusion_matrix(y_test, y_pred)
@@ -110,6 +128,12 @@ def main():
     duration = time.time() - start_time
     print_step("FINE PROCESSO")
     print(f"Durata totale: {duration:.2f} secondi")
+
+    experiment.log_image("./images/confusion_matrix.png", name="Confusion Matrix")
+    experiment.log_image("./images/feature_importance.png", name="Feature Importance")
+    experiment.log_image("./images/label_distribution.png", name="Label Distribution")
+    experiment.log_model("best_xgb_model", "best_xgb_model.joblib")
+    experiment.end()
 
 if __name__ == "__main__":
     main()
