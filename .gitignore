@@ -1,3 +1,10 @@
 dataverse_files/
 idee.txt
+<<<<<<< HEAD
 features_skin_lesion.csv
+=======
+features_skin_lesion.csv
+save_model_embeddings/
+save_model_classifier/
+save_model_autoencoder/
+>>>>>>> 60a38b975de1c5710a718961f5dc3742a8ba41ea
