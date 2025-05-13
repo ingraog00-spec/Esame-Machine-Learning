@@ -8,3 +8,5 @@ pyyaml
 matplotlib
 seaborn
 comet_ml
+xgboost
+joblib
