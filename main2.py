@@ -7,6 +7,9 @@ from models.model_classifier import Classifier, EnsembleClassifier
 from utils.train_classifier import train_classifier
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -51,13 +54,26 @@ experiment.set_name("test del classificatore")
 n_models = 3
 ensemble_models = []
 
+val_accuracies = []
+val_precisions = []
+val_recalls = []
+val_f1s = []
+
 for i in range(n_models):
     print(f"\n--- Training model {i+1}/{n_models} ---")
     set_seed(42 + i)
     model = Classifier(input_dim=embeddings.shape[1], num_classes=7)
-    train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
+
+    metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment=experiment)
+
+    val_accuracies.append(metrics["accuracy"])
+    val_precisions.append(metrics["precision"])
+    val_recalls.append(metrics["recall"])
+    val_f1s.append(metrics["f1"])
+
     save_path_i = f"{config['train_classifier']['save_path']}_model{i}.pt"
     torch.save(model.state_dict(), save_path_i)
+
 
 for i in range(n_models):
     model = Classifier(input_dim=embeddings.shape[1], num_classes=7)
@@ -86,4 +102,24 @@ with torch.no_grad():
 
 test_acc = correct / total
 print(f"\nTest Accuracy (Ensemble): {test_acc:.4f}")
-experiment.log_metric("ensemble_test_accuracy", test_acc)
+# experiment.log_metric("ensemble_test_accuracy", test_acc)
+
+model_names = [f"Model {i+1}" for i in range(n_models)]
+
+def log_bar_chart(metric_values, metric_name):
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x=model_names, y=metric_values, palette="viridis")
+    plt.title(f"{metric_name} Comparison Across Models")
+    plt.ylabel(metric_name)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path)
+    experiment.log_image(path)
+    plt.close()
+
+log_bar_chart(val_accuracies, "Accuracy")
+log_bar_chart(val_precisions, "Precision")
+log_bar_chart(val_recalls, "Recall")
+log_bar_chart(val_f1s, "F1 Score")

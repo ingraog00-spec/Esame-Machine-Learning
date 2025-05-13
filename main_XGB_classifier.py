@@ -5,7 +5,7 @@ import joblib
 import time
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 from xgboost import XGBClassifier
 from comet_ml import Experiment
 
@@ -76,11 +76,13 @@ def main():
     print("Classification Report:\n")
     print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
 
+    accuracy = accuracy_score(y_test, y_pred, average='macro')
     precision = precision_score(y_test, y_pred, average='macro')
     recall = recall_score(y_test, y_pred, average='macro')
     f1 = f1_score(y_test, y_pred, average='macro')
 
     experiment.log_metrics({
+        "test_accuracy": accuracy,
         "test_precision": precision,
         "test_recall": recall,
         "test_f1": f1

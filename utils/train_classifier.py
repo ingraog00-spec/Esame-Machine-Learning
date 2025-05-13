@@ -5,7 +5,7 @@ import torch.optim as optim
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, precision_score, recall_score, f1_score
 import os
 from models.model_classifier import LabelSmoothingLoss
 
@@ -21,6 +21,10 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     patience = 10
     patience_counter = 0
     train_losses = []
+    val_accuracies = []
+    val_precisions = []
+    val_recalls = []
+    val_f1s = []
 
     for epoch in range(cfg["epochs"]):
         model.train()
@@ -57,10 +61,25 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
                 all_labels.extend(y_val.cpu().numpy())
 
         acc = correct / total
-        experiment.log_metric("val_accuracy", acc, step=epoch + 1)
+        precision = precision_score(all_labels, all_preds, average='weighted', zero_division=0)
+        recall = recall_score(all_labels, all_preds, average='weighted', zero_division=0)
+        f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+
+        val_accuracies.append(acc)
+        val_precisions.append(precision)
+        val_recalls.append(recall)
+        val_f1s.append(f1)
+
+        experiment.log_metrics({
+            "val_accuracy": acc,
+            "val_precision": precision,
+            "val_recall": recall,
+            "val_f1_score": f1
+        }, step=epoch + 1)
+
         scheduler.step(acc)
 
-        print(f"Epoch [{epoch+1}/{cfg['epochs']}] - Loss: {avg_loss:.4f} - Val Acc: {acc:.4f}")
+        print(f"Epoch [{epoch+1}/{cfg['epochs']}] - Loss: {avg_loss:.4f} - Acc: {acc:.4f} - Precision: {precision:.4f} - Recall: {recall:.4f} - F1: {f1:.4f}")
 
         if acc > best_acc:
             best_acc = acc
@@ -75,7 +94,6 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
                 print(f"Early stopping triggered after {epoch+1} epochs.")
                 break
 
-    # Final Metrics
     report = classification_report(all_labels, all_preds, output_dict=True)
     experiment.log_metrics({
         "final_val_accuracy": report["accuracy"],
@@ -92,6 +110,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.ylabel("True")
     plt.tight_layout()
     confusion_matrix_path = "./reconstructions/confusion_matrix.png"
+    os.makedirs(os.path.dirname(confusion_matrix_path), exist_ok=True)
     plt.savefig(confusion_matrix_path)
     experiment.log_image(confusion_matrix_path)
 
@@ -101,7 +120,13 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.grid(True)
-    plt.tight_layout()
     loss_curve_path = "./reconstructions/train_loss_curve.png"
     plt.savefig(loss_curve_path)
     experiment.log_image(loss_curve_path)
+
+    return {
+        "accuracy": report["accuracy"],
+        "precision": report["weighted avg"]["precision"],
+        "recall": report["weighted avg"]["recall"],
+        "f1": report["weighted avg"]["f1-score"]
+    }

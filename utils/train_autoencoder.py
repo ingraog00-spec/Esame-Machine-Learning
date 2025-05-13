@@ -34,10 +34,11 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         running_loss = 0.0
 
         progress_bar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
-        for images, _ in progress_bar:
+        for images, labels in progress_bar:
             images = images.to(device)
+            labels = labels.to(device)
 
-            x_reconstructed, mu, logvar, _ = model(images)
+            x_reconstructed, mu, logvar, _ = model(images, labels)
             loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=0.1)
 
             optimizer.zero_grad()
@@ -65,9 +66,11 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         model.eval()
         with torch.no_grad():
             sample_inputs = images[:8]
-            x_reconstructed, _, _, _ = model(sample_inputs)
+            sample_labels = labels[:8]
+            x_reconstructed, _, _, _ = model(sample_inputs, sample_labels)
             comparison = torch.cat([sample_inputs, x_reconstructed])
             image_path = os.path.join(save_reconstructions, f"epoch_{epoch + 1}_recon.png")
+            os.makedirs(save_reconstructions, exist_ok=True)
             save_image(comparison, image_path, nrow=8)
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction")
 
@@ -75,7 +78,6 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             print(f"\nEarly stopping triggered at epoch {epoch + 1}")
             break
 
-    # Plot loss curve
     if train_losses:
         plt.figure()
         plt.plot(range(1, len(train_losses) + 1), train_losses, marker='o')

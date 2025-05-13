@@ -34,7 +34,6 @@ def test_classifier(model, data_loader, device, experiment=None, title="Model Ev
             f"{log_prefix}f1_score": report["weighted avg"]["f1-score"]
         })
 
-        # Log confusion matrix image
         plt.figure(figsize=(8, 6))
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
         plt.title(f"{title} - Confusion Matrix")

@@ -2,7 +2,7 @@ import comet_ml
 from dataset.dataset import get_dataloaders
 from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split
 from utils.train_autoencoder import train_autoencoder
-from models.models_autoencoder import ConvVariationalAutoencoder
+from models.models_autoencoder import ConvConditionalVAE
 import torch
 import yaml
 from comet_ml import Experiment
@@ -14,6 +14,9 @@ from utils.test import test_classifier
 from utils.utils import tsne_visualization
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -23,7 +26,7 @@ def set_seed(seed=42):
 
 if __name__ == "__main__":
     experiment = Experiment()
-    experiment.set_name("Autoencoder + Classifier")
+    experiment.set_name("prova CVAE")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -47,7 +50,7 @@ if __name__ == "__main__":
 
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
-    autoencoder = ConvVariationalAutoencoder(latent_dim=256)
+    autoencoder = ConvConditionalVAE(latent_dim=256, num_classes=len(label_map))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -90,13 +93,26 @@ if __name__ == "__main__":
     n_models = config["train_classifier"]["n_models"]
     ensemble_models = []
 
+    val_accuracies = []
+    val_precisions = []
+    val_recalls = []
+    val_f1s = []
+
     for i in range(n_models):
         print(f"\n--- Training model {i+1}/{n_models} ---")
         set_seed(42 + i)
         model = Classifier(input_dim=256, num_classes=7)
-        train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
+
+        metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment=experiment)
+
+        val_accuracies.append(metrics["accuracy"])
+        val_precisions.append(metrics["precision"])
+        val_recalls.append(metrics["recall"])
+        val_f1s.append(metrics["f1"])
+
         save_path_i = f"{config['train_classifier']['save_path']}_model{i}.pt"
         torch.save(model.state_dict(), save_path_i)
+
 
     for i in range(n_models):
         model = Classifier(input_dim=256, num_classes=7)
@@ -106,5 +122,25 @@ if __name__ == "__main__":
         ensemble_models.append(model)
 
     ensemble = EnsembleClassifier(ensemble_models).to(device)
+
+    model_names = [f"Model {i+1}" for i in range(n_models)]
+
+    def log_bar_chart(metric_values, metric_name):
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x=model_names, y=metric_values, palette="viridis")
+        plt.title(f"{metric_name} Comparison Across Models")
+        plt.ylabel(metric_name)
+        plt.ylim(0, 1)
+        plt.tight_layout()
+        path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        plt.savefig(path)
+        experiment.log_image(path)
+        plt.close()
+
+    log_bar_chart(val_accuracies, "Accuracy")
+    log_bar_chart(val_precisions, "Precision")
+    log_bar_chart(val_recalls, "Recall")
+    log_bar_chart(val_f1s, "F1 Score")
 
     test_classifier(model = ensemble, data_loader = test_loader_cls, device = device, experiment = experiment, title = "Test Ensemble", log_prefix = "ensemble_test_")
