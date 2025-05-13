@@ -113,6 +113,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     os.makedirs(os.path.dirname(confusion_matrix_path), exist_ok=True)
     plt.savefig(confusion_matrix_path)
     experiment.log_image(confusion_matrix_path)
+    plt.close()
 
     plt.figure()
     plt.plot(range(1, len(train_losses)+1), train_losses, marker='o')
@@ -123,6 +124,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     loss_curve_path = "./reconstructions/train_loss_curve.png"
     plt.savefig(loss_curve_path)
     experiment.log_image(loss_curve_path)
+    plt.close()
 
     return {
         "accuracy": report["accuracy"],

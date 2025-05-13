@@ -100,6 +100,7 @@ def main():
     plt.tight_layout()
     plt.savefig("./images/confusion_matrix.png")
     plt.show()
+    plt.close()
 
     print_step("7. Feature Importances")
     importance = best_model.feature_importances_
@@ -111,6 +112,7 @@ def main():
     plt.tight_layout()
     plt.savefig("./images/feature_importance.png")
     plt.show()
+    plt.close()
 
     print_step("8. Distribuzione delle Classi")
     plt.figure(figsize=(7, 4))
@@ -120,6 +122,7 @@ def main():
     plt.tight_layout()
     plt.savefig("./images/label_distribution.png")
     plt.show()
+    plt.close()
 
     print_step("9. Salvataggio del modello")
     joblib.dump(best_model, "best_xgb_model.joblib")

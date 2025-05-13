@@ -40,6 +40,7 @@ def show_batch_images(images, labels, label_map, title="", experiment=None):
         experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
         buf.close()
     plt.show()
+    plt.close()
 
 def plot_class_distribution(loader, label_map, title="Distribuzione Classi", experiment=None):
     label_counts = torch.zeros(len(label_map), dtype=torch.int32)
@@ -63,6 +64,7 @@ def plot_class_distribution(loader, label_map, title="Distribuzione Classi", exp
         experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
         buf.close()
     plt.show()
+    plt.close()
 
 def count_class_distribution(loader):
     all_labels = []

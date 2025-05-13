@@ -90,6 +90,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         os.makedirs("./images", exist_ok=True)
         plt.savefig(loss_curve_path)
         experiment.log_image(loss_curve_path)
+        plt.close()
 
     # Save best model
     if best_model_wts:

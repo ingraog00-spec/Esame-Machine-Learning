@@ -44,5 +44,6 @@ def test_classifier(model, data_loader, device, experiment=None, title="Model Ev
         os.makedirs("./reconstructions", exist_ok=True)
         plt.savefig(cm_path)
         experiment.log_image(cm_path)
+        plt.close()
 
     return acc, report
