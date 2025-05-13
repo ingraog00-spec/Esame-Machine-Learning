@@ -1,7 +1,6 @@
 import torch
 from tqdm import tqdm
 
-
 def extract_embeddings(encoder, dataloader, device):
     encoder.eval()
     embeddings = []
@@ -10,9 +9,11 @@ def extract_embeddings(encoder, dataloader, device):
     with torch.no_grad():
         for images, lbls in tqdm(dataloader, desc="Extracting embeddings"):
             images = images.to(device)
-            mu, _ = encoder.encode(images)
+            lbls_tensor = lbls.to(device)
+            mu, _ = encoder.encode(images, lbls_tensor)
             embeddings.append(mu.cpu())
             labels.extend(lbls.cpu().numpy())
 
     embeddings_tensor = torch.cat(embeddings)
     return embeddings_tensor, labels
+
