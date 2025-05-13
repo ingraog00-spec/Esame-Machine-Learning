@@ -12,17 +12,22 @@ from models.model_classifier import Classifier, EnsembleClassifier
 from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
 from utils.utils import tsne_visualization
-import random
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+def log_bar_chart(metric_values, metric_name):
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x=model_names, y=metric_values, palette="viridis")
+    plt.title(f"{metric_name} Comparison Across Models")
+    plt.ylabel(metric_name)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path)
+    experiment.log_image(path)
+    plt.close()
 
 if __name__ == "__main__":
     experiment = Experiment()
@@ -100,7 +105,6 @@ if __name__ == "__main__":
 
     for i in range(n_models):
         print(f"\n--- Training model {i+1}/{n_models} ---")
-        set_seed(42 + i)
         model = Classifier(input_dim=256, num_classes=7)
 
         metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment=experiment)
@@ -124,19 +128,6 @@ if __name__ == "__main__":
     ensemble = EnsembleClassifier(ensemble_models).to(device)
 
     model_names = [f"Model {i+1}" for i in range(n_models)]
-
-    def log_bar_chart(metric_values, metric_name):
-        plt.figure(figsize=(8, 5))
-        sns.barplot(x=model_names, y=metric_values, palette="viridis")
-        plt.title(f"{metric_name} Comparison Across Models")
-        plt.ylabel(metric_name)
-        plt.ylim(0, 1)
-        plt.tight_layout()
-        path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        plt.savefig(path)
-        experiment.log_image(path)
-        plt.close()
 
     log_bar_chart(val_accuracies, "Accuracy")
     log_bar_chart(val_precisions, "Precision")
