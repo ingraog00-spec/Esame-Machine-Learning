@@ -8,11 +8,6 @@ pyyaml
 matplotlib
 seaborn
 comet_ml
-<<<<<<< HEAD
-=======
-xgboost
-joblib
 os
 io
 Counter
->>>>>>> 60a38b975de1c5710a718961f5dc3742a8ba41ea
