@@ -24,7 +24,7 @@ if __name__ == "__main__":
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
-    """  print("- Visualizzo un batch dal train loader")
+    print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     plot_class_distribution(val_loader, inv_label_map, title="Distribuzione Classi - Validation", experiment=experiment)
 
     print("- Distribuzione delle classi nel test set:")
-    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment) """
+    plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
