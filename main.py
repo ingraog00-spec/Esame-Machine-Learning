@@ -13,6 +13,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
 from utils.utils import tsne_visualization
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import seaborn as sns
 import os
 
@@ -31,7 +33,7 @@ def log_bar_chart(metric_values, metric_name):
 
 if __name__ == "__main__":
     experiment = Experiment()
-    experiment.set_name("prova CVAE")
+    experiment.set_name("prova CVAE - completa")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -40,7 +42,7 @@ if __name__ == "__main__":
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
-    print("- Visualizzo un batch dal train loader")
+    """ print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
@@ -53,7 +55,7 @@ if __name__ == "__main__":
     print("- Distribuzione delle classi nel test set:")
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
-    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
+    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
 
     autoencoder = ConvConditionalVAE(latent_dim=256, num_classes=len(label_map))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
