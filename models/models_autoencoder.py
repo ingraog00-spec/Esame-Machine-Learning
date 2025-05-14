@@ -8,7 +8,7 @@ class ConvConditionalVAE(nn.Module):
         self.latent_dim = latent_dim
         self.num_classes = num_classes
 
-        # Encoding: image + label
+        # Encoding
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(3 + num_classes, 32, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),

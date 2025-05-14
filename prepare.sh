@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# ------------------------------------------------------------ #
-# Setup per il progetto Skin Lesion Analysis Classification    #
-# ------------------------------------------------------------ #
+# ------------------------------------------------------------- #
+#   Setup per il progetto Skin Lesion Analysis Classification   #
+# ------------------------------------------------------------- #
 
 echo "Creazione ambiente per il progetto..."
 
@@ -13,10 +13,11 @@ pip install -r requirements.txt
 # 2. Creazione delle directory necessarie
 echo "Creazione directory..."
 
-mkdir -p save_model/
+mkdir -p save_model_embeddings/
 mkdir -p save_model_autoencoder/
 mkdir -p save_model_classifier/
 mkdir -p reconstructions/
+mkdir -p images/
 
 echo "Setup completato con successo!"
 
