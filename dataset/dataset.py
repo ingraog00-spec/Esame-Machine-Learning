@@ -3,8 +3,9 @@ import pandas as pd
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
-from utils.utils import stratified_split
 import yaml
+from sklearn.model_selection import train_test_split
+
 
 class SkinLesionDataset(Dataset):
     def __init__(self, dataframe, image_dirs, transform=None):
@@ -42,7 +43,6 @@ def get_dataloaders(config_path="config.yml"):
     metadata_path = config['data']['metadata_path']
     image_size = config['data']['image_size']
     val_split = config['data']['val_split']
-    test_split = config['data']['test_split']
     batch_size = config['training']['batch_size']
     num_workers = config['training']['num_workers']
     seed = config['training']['seed']
@@ -55,7 +55,7 @@ def get_dataloaders(config_path="config.yml"):
             valid_ids.append(image_id)
     df = df[df['image_id'].isin(valid_ids)]
 
-    train_df, val_df, test_df = stratified_split(df, val_split, test_split, seed)
+    train_df, val_df = stratified_split(df, val_split, seed)
 
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
@@ -65,10 +65,39 @@ def get_dataloaders(config_path="config.yml"):
 
     train_dataset = SkinLesionDataset(train_df, image_dirs, transform)
     val_dataset = SkinLesionDataset(val_df, image_dirs, transform)
-    test_dataset = SkinLesionDataset(test_df, image_dirs, transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+    return train_loader, val_loader
+
+
+def get_external_test_loader(test_image_dir, test_metadata_path, label_map, image_size, batch_size=32, num_workers=4):
+    df = pd.read_csv(test_metadata_path)
+
+    if 'image' in df.columns:
+        df.rename(columns={'image': 'image_id'}, inplace=True)
+    if 'dx' not in df.columns and 'label' in df.columns:
+        df.rename(columns={'label': 'dx'}, inplace=True)
+
+    df['label'] = df['dx'].map(label_map)
+
+    transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
+    ])
+
+    test_dataset = SkinLesionDataset(df, [test_image_dir], transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    return train_loader, val_loader, test_loader
+    return test_loader
+
+def stratified_split(df, val_size, seed):
+    train_df, val_df = train_test_split(
+        df,
+        test_size=val_size,
+        stratify=df['dx'],
+        random_state=seed
+    )
+    return train_df, val_df

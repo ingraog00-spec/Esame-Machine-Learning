@@ -8,23 +8,6 @@ import seaborn as sns
 from sklearn.manifold import TSNE
 import pandas as pd
 
-def stratified_split(df, val_size, test_size, seed):
-    train_val_df, test_df = train_test_split(
-        df,
-        test_size=test_size,
-        stratify=df['dx'],
-        random_state=seed
-    )
-
-    # val_relative_size = val_size / (1 - test_size)
-    train_df, val_df = train_test_split(
-        train_val_df,
-        test_size=val_size,
-        stratify=train_val_df['dx'],
-        random_state=seed
-    )
-    return train_df, val_df, test_df
-
 def show_batch_images(images, labels, label_map, title="", experiment=None):
     grid_img = torchvision.utils.make_grid(images[:16], nrow=4, normalize=True)
     plt.figure(figsize=(8, 8))

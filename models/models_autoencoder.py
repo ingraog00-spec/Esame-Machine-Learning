@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ConvConditionalVAE(nn.Module):
-    def __init__(self, latent_dim=128, num_classes=10):
+    def __init__(self, latent_dim=128, num_classes=7):
         super(ConvConditionalVAE, self).__init__()
         self.latent_dim = latent_dim
         self.num_classes = num_classes
