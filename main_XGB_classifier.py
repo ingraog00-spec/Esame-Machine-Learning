@@ -79,7 +79,7 @@ def main():
     print("Classification Report:\n")
     print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
 
-    accuracy = accuracy_score(y_test, y_pred, average='macro')
+    accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred, average='macro')
     recall = recall_score(y_test, y_pred, average='macro')
     f1 = f1_score(y_test, y_pred, average='macro')
