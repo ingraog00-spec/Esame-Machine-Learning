@@ -8,7 +8,9 @@ from sklearn.manifold import TSNE
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
-import os
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import numpy as np
+
 
 def show_batch_images(images, labels, label_map, title="", experiment=None):
     grid_img = torchvision.utils.make_grid(images[:16], nrow=4, normalize=True)
@@ -86,15 +88,67 @@ def tsne_visualization(embeddings, labels, inv_label_map, experiment, title="t-S
     experiment.log_image(save_path, name="TSNE Latent Space")
     plt.close()
 
-""" def log_bar_chart(metric_values, metric_name):
+def generate_graphics(test_loader_cls, device, ensemble, val_scores, test_results, class_names, experiment, n_models):
+    # PREDIZIONI PER GRAFICI
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader_cls:
+            inputs = inputs.to(device)
+            outputs = ensemble(inputs)
+            preds = torch.argmax(outputs, dim=1)
+
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    # GRAFICO 1: ACCURACY & F1 DEI MODELLI E DELL’ENSEMBLE
+    model_ids = [f"Model {i+1}" for i in range(n_models)] + ["Ensemble"]
+    accs = [m['accuracy'] for m in val_scores] + [test_results["accuracy"]]
+    f1s = [m['f1'] for m in val_scores] + [test_results["f1"]]
+
     plt.figure(figsize=(8, 5))
-    sns.barplot(x=model_names, y=metric_values, palette="viridis")
-    plt.title(f"{metric_name} Comparison Across Models")
-    plt.ylabel(metric_name)
-    plt.ylim(0, 1)
+    plt.plot(model_ids, accs, marker='o', label='Accuracy')
+    plt.plot(model_ids, f1s, marker='o', label='F1-score')
+    plt.title("Confronto Modelli vs Ensemble")
+    plt.ylabel("Score")
+    plt.grid(True)
+    plt.legend()
     plt.tight_layout()
-    path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    plt.savefig(path)
-    experiment.log_image(path)
-    plt.close() """
+    plt.savefig("metrics_comparison.png")
+    experiment.log_image("metrics_comparison.png")
+    plt.close()
+
+    # GRAFICO 2: MATRICE DI CONFUSIONE
+    cm = confusion_matrix(all_labels, all_preds)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+    disp.plot(cmap="Blues", values_format=".0f")
+    plt.title("Matrice di Confusione - Ensemble")
+    plt.tight_layout()
+    plt.savefig("confusion_matrix.png")
+    experiment.log_image("confusion_matrix.png")
+    plt.close()
+
+    # GRAFICO 3: PRECISION/RECALL/F1 PER CLASSE
+    report = classification_report(all_labels, all_preds, output_dict=True)
+
+    precision = [report[str(i)]['precision'] for i in range(len(class_names))]
+    recall = [report[str(i)]['recall'] for i in range(len(class_names))]
+    f1 = [report[str(i)]['f1-score'] for i in range(len(class_names))]
+
+    x = np.arange(len(class_names))
+    width = 0.25
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(x - width, precision, width, label='Precision')
+    plt.bar(x, recall, width, label='Recall')
+    plt.bar(x + width, f1, width, label='F1-score')
+    plt.xticks(x, class_names)
+    plt.ylabel('Score')
+    plt.title('Performance per Classe - Ensemble')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("class_metrics.png")
+    experiment.log_image("class_metrics.png")
+    plt.close()

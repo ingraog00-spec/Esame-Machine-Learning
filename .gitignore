@@ -1,6 +1,7 @@
 dataverse_files/
 idee.txt
 features_skin_lesion.csv
+features_skin_lesion_test.csv
 save_model_embeddings/
 save_model_classifier/
 save_model_autoencoder/

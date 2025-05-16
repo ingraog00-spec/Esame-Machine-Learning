@@ -1,9 +1,10 @@
+import comet_ml
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 import time
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 from xgboost import XGBClassifier
@@ -14,28 +15,30 @@ def print_step(msg):
 
 def main():
     experiment = Experiment()
-    experiment.set_name("XGBCLassifier")
+    experiment.set_name("Simulazione XGBoost Skin Lesion Classification - GridSearchCV")
     start_time = time.time()
 
     print_step("1. Caricamento dei dati")
-    df = pd.read_csv("features_skin_lesion.csv")
-    print(f"Totale campioni: {len(df)}")
-    print("Esempio dati:")
-    print(df.head())
+    df_train = pd.read_csv("features_skin_lesion.csv")
+    df_test = pd.read_csv("features_skin_lesion_test.csv")
 
-    X = df.drop(columns=["filename", "label"]).values
-    y = df["label"].values
+    print(f"Train samples: {len(df_train)}")
+    print(f"Test samples: {len(df_test)}")
+    print("Esempio dati:")
+    print(df_train.head())
+    print(df_test.head())
+
+    X_train = df_train.drop(columns=["filename", "label"]).values
+    y_train_raw = df_train["label"].values
+
+    X_test = df_test.drop(columns=["filename", "label"]).values
+    y_test_raw = df_test["label"].values
 
     label_encoder = LabelEncoder()
-    y_encoded = label_encoder.fit_transform(y)
+    y_train = label_encoder.fit_transform(y_train_raw)
+    y_test = label_encoder.transform(y_test_raw)
 
-    print_step("2. Suddivisione Train/Test")
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
-    )
-    print(f"Train size: {len(X_train)} - Test size: {len(X_test)}")
-
-    print_step("3. Inizio GridSearchCV con XGBoost")
+    print_step("2. Inizio GridSearchCV con XGBoost")
     param_grid = {
         'n_estimators': [100, 200],
         'max_depth': [4, 6],
@@ -64,13 +67,13 @@ def main():
     experiment.log_parameters(grid_search.best_params_)
 
 
-    print_step("4. Risultati GridSearch")
+    print_step("3. Risultati GridSearch")
     print(f"Best Score: {grid_search.best_score_:.4f}")
     print(f"Best Params: {grid_search.best_params_}")
 
     best_model = grid_search.best_estimator_
 
-    print_step("5. Valutazione sul test set")
+    print_step("4. Valutazione sul test set")
     y_pred = best_model.predict(X_test)
 
     print("Classification Report:\n")
@@ -88,7 +91,7 @@ def main():
         "test_f1": f1
     })
 
-    print_step("6. Creazione Confusion Matrix")
+    print_step("5. Creazione Confusion Matrix")
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
@@ -102,7 +105,7 @@ def main():
     plt.show()
     plt.close()
 
-    print_step("7. Feature Importances")
+    print_step("6. Feature Importances")
     importance = best_model.feature_importances_
     plt.figure(figsize=(10, 4))
     plt.bar(range(len(importance)), importance)
@@ -114,17 +117,17 @@ def main():
     plt.show()
     plt.close()
 
-    print_step("8. Distribuzione delle Classi")
+    print_step("7. Distribuzione delle Classi")
     plt.figure(figsize=(7, 4))
-    sns.countplot(x=y, order=pd.Series(y).value_counts().index)
+    sns.countplot(x=y_train, order=pd.Series(y_train).value_counts().index)
     plt.title("Distribuzione delle Classi")
-    plt.xlabel("Label (codificata)")
+    plt.xlabel("Label")
     plt.tight_layout()
     plt.savefig("./images/label_distribution.png")
     plt.show()
     plt.close()
 
-    print_step("9. Salvataggio del modello")
+    print_step("8. Salvataggio del modello")
     joblib.dump(best_model, "best_xgb_model.joblib")
     print("Modello salvato in: best_xgb_model.joblib")
 

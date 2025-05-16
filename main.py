@@ -1,6 +1,6 @@
 import comet_ml
 from dataset.dataset import get_dataloaders, get_test_dataloader
-from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split
+from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split, generate_graphics
 from utils.train_autoencoder import train_autoencoder
 from models.models_autoencoder import ConvConditionalVAE
 from sklearn.model_selection import StratifiedKFold
@@ -16,7 +16,7 @@ from utils.utils import tsne_visualization
 
 if __name__ == "__main__":
     experiment = Experiment()
-    experiment.set_name("Prova codice")
+    experiment.set_name("Simulazione Autoencoder e Classificatore Skin Lesion Classification - Ensemble Classifier")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         num_workers=config['training']['num_workers']
     )
 
-    """ print("- Visualizzo un batch dal train loader")
+    print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     print("- Distribuzione delle classi nel test set:")
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
-    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
+    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
     autoencoder = ConvConditionalVAE(latent_dim=256, num_classes=len(label_map))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -90,23 +90,22 @@ if __name__ == "__main__":
 
     n_models = config["train_classifier"]["n_models"]
     save_base_path = config["train_classifier"]["save_path"]
-    batch_size = config["train_classifier"]["batch_size"]
 
     skf = StratifiedKFold(n_splits=n_models, shuffle=True, random_state=42)
     ensemble_models = []
-
     val_scores = []
 
     for i, (train_idx, val_idx) in enumerate(skf.split(train_embeddings, train_labels)):
         print(f"\n--- Training fold {i+1}/{n_models} ---")
 
         model = Classifier(input_dim=256, num_classes=7)
-        metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
+        metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment, model_name=f"Modello_{i+1}")
 
         torch.save(model.state_dict(), f"{save_base_path}_fold{i}.pt")
         val_scores.append(metrics)
 
-    # Caricamento dei modelli addestrati
+        print(f"Model {i+1} | Acc: {metrics['accuracy']:.3f} | F1: {metrics['f1']:.3f}")
+
     for i in range(n_models):
         model = Classifier(input_dim=256, num_classes=7)
         model.load_state_dict(torch.load(f"{save_base_path}_fold{i}.pt"))
@@ -114,11 +113,9 @@ if __name__ == "__main__":
         model.eval()
         ensemble_models.append(model)
 
-    # Creazione ensemble
     ensemble = EnsembleClassifier(ensemble_models).to(device)
 
-    # Valutazione finale sul test set
-    test_classifier(
+    test_results = test_classifier(
         model=ensemble,
         data_loader=test_loader_cls,
         device=device,
@@ -126,3 +123,6 @@ if __name__ == "__main__":
         title="Test Ensemble",
         log_prefix="ensemble_test_"
     )
+
+    generate_graphics(test_loader_cls, device, ensemble, val_scores, test_results, inv_label_map, experiment, n_models)
+    print("- Generazione grafici completata!")
