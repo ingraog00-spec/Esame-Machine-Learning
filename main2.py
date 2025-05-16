@@ -5,27 +5,25 @@ from comet_ml import Experiment
 import yaml
 from models.model_classifier import Classifier, EnsembleClassifier
 from utils.train_classifier import train_classifier
-import random
-import numpy as np
+from utils.test import test_classifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+import numpy as np
 
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-set_seed(42)
+experiment = Experiment()
+experiment.set_name("Prova del main 2")
 
 with open("config.yml") as f:
     config = yaml.safe_load(f)
 
+default_class_names = [str(i) for i in range(7)]
+class_names = config.get("class_names", default_class_names)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 data = torch.load("./save_model_embeddings/embeddings.pt", weights_only=False)
-
 train_embeddings, train_labels = data["train"]
 val_embeddings, val_labels = data["val"]
 test_embeddings, test_labels = data["test"]
@@ -33,12 +31,6 @@ test_embeddings, test_labels = data["test"]
 train_labels = torch.tensor(train_labels)
 val_labels = torch.tensor(val_labels)
 test_labels = torch.tensor(test_labels)
-
-embeddings = torch.cat([train_embeddings, val_embeddings, test_embeddings], dim=0)
-labels = torch.cat([train_labels, val_labels, test_labels], dim=0)
-
-""" print(f"Embeddings shape: {embeddings.shape}")
-print(f"Labels shape: {labels.shape}") """
 
 train_dataset = TensorDataset(train_embeddings, train_labels)
 val_dataset = TensorDataset(val_embeddings, val_labels)
@@ -48,78 +40,102 @@ train_loader_cls = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_loader_cls = DataLoader(val_dataset, batch_size=32)
 test_loader_cls = DataLoader(test_dataset, batch_size=32)
 
-experiment = Experiment()
-experiment.set_name("test del classificatore")
+n_models = config["train_classifier"]["n_models"]
+save_base_path = config["train_classifier"]["save_path"]
 
-n_models = 3
+skf = StratifiedKFold(n_splits=n_models, shuffle=True, random_state=42)
 ensemble_models = []
+val_scores = []
 
-val_accuracies = []
-val_precisions = []
-val_recalls = []
-val_f1s = []
+# TRAINING DEI MODELLI
+for i, (train_idx, val_idx) in enumerate(skf.split(train_embeddings, train_labels)):
+    print(f"\n--- Training fold {i+1}/{n_models} ---")
 
+    model = Classifier(input_dim=256, num_classes=7)
+    metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment, model_name=f"Modello_{i+1}")
+
+    torch.save(model.state_dict(), f"{save_base_path}_fold{i}.pt")
+    val_scores.append(metrics)
+
+    print(f"Model {i+1} | Acc: {metrics['accuracy']:.3f} | F1: {metrics['f1']:.3f}")
+
+# CARICAMENTO MODELLI E CREAZIONE ENSEMBLE
 for i in range(n_models):
-    print(f"\n--- Training model {i+1}/{n_models} ---")
-    set_seed(42 + i)
-    model = Classifier(input_dim=embeddings.shape[1], num_classes=7)
-
-    metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment=experiment)
-
-    val_accuracies.append(metrics["accuracy"])
-    val_precisions.append(metrics["precision"])
-    val_recalls.append(metrics["recall"])
-    val_f1s.append(metrics["f1"])
-
-    save_path_i = f"{config['train_classifier']['save_path']}_model{i}.pt"
-    torch.save(model.state_dict(), save_path_i)
-
-
-for i in range(n_models):
-    model = Classifier(input_dim=embeddings.shape[1], num_classes=7)
-    model.load_state_dict(torch.load(f"{config['train_classifier']['save_path']}_model{i}.pt"))
+    model = Classifier(input_dim=256, num_classes=7)
+    model.load_state_dict(torch.load(f"{save_base_path}_fold{i}.pt"))
     model.to(device)
     model.eval()
     ensemble_models.append(model)
 
 ensemble = EnsembleClassifier(ensemble_models).to(device)
-ensemble.eval()
 
-correct = 0
-total = 0
+# TEST DELL’ENSEMBLE
+test_results = test_classifier(
+    model=ensemble,
+    data_loader=test_loader_cls,
+    device=device,
+    experiment=experiment,
+    title="Test Ensemble",
+    log_prefix="ensemble_test_"
+)
+
+# PREDIZIONI PER GRAFICI
 all_preds = []
 all_labels = []
 
 with torch.no_grad():
-    for x_batch, y_batch in test_loader_cls:
-        x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-        outputs = ensemble(x_batch)
-        _, preds = torch.max(outputs, 1)
-        correct += (preds == y_batch).sum().item()
-        total += y_batch.size(0)
+    for inputs, labels in test_loader_cls:
+        inputs = inputs.to(device)
+        outputs = ensemble(inputs)
+        preds = torch.argmax(outputs, dim=1)
+
         all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(y_batch.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
-test_acc = correct / total
-print(f"\nTest Accuracy (Ensemble): {test_acc:.4f}")
-# experiment.log_metric("ensemble_test_accuracy", test_acc)
+# GRAFICO 1: ACCURACY & F1 DEI MODELLI E DELL’ENSEMBLE
+model_ids = [f"Model {i+1}" for i in range(n_models)] + ["Ensemble"]
+accs = [m['accuracy'] for m in val_scores] + [test_results["accuracy"]]
+f1s = [m['f1'] for m in val_scores] + [test_results["f1"]]
 
-model_names = [f"Model {i+1}" for i in range(n_models)]
+plt.figure(figsize=(8, 5))
+plt.plot(model_ids, accs, marker='o', label='Accuracy')
+plt.plot(model_ids, f1s, marker='o', label='F1-score')
+plt.title("Confronto Modelli vs Ensemble")
+plt.ylabel("Score")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("metrics_comparison.png")
+experiment.log_image("metrics_comparison.png")
 
-def log_bar_chart(metric_values, metric_name):
-    plt.figure(figsize=(8, 5))
-    sns.barplot(x=model_names, y=metric_values, palette="viridis")
-    plt.title(f"{metric_name} Comparison Across Models")
-    plt.ylabel(metric_name)
-    plt.ylim(0, 1)
-    plt.tight_layout()
-    path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    plt.savefig(path)
-    experiment.log_image(path)
-    plt.close()
+# GRAFICO 2: MATRICE DI CONFUSIONE
+cm = confusion_matrix(all_labels, all_preds)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+disp.plot(cmap="Blues", values_format=".0f")
+plt.title("Matrice di Confusione - Ensemble")
+plt.tight_layout()
+plt.savefig("confusion_matrix.png")
+experiment.log_image("confusion_matrix.png")
 
-log_bar_chart(val_accuracies, "Accuracy")
-log_bar_chart(val_precisions, "Precision")
-log_bar_chart(val_recalls, "Recall")
-log_bar_chart(val_f1s, "F1 Score")
+# GRAFICO 3: PRECISION/RECALL/F1 PER CLASSE
+report = classification_report(all_labels, all_preds, output_dict=True)
+
+precision = [report[str(i)]['precision'] for i in range(len(class_names))]
+recall = [report[str(i)]['recall'] for i in range(len(class_names))]
+f1 = [report[str(i)]['f1-score'] for i in range(len(class_names))]
+
+x = np.arange(len(class_names))
+width = 0.25
+
+plt.figure(figsize=(10, 6))
+plt.bar(x - width, precision, width, label='Precision')
+plt.bar(x, recall, width, label='Recall')
+plt.bar(x + width, f1, width, label='F1-score')
+plt.xticks(x, class_names)
+plt.ylabel('Score')
+plt.title('Performance per Classe - Ensemble')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig("class_metrics.png")
+experiment.log_image("class_metrics.png")

@@ -1,6 +1,5 @@
 import comet_ml
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -9,9 +8,10 @@ from sklearn.metrics import confusion_matrix, classification_report, precision_s
 import os
 from models.model_classifier import LabelSmoothingLoss
 
-def train_classifier(model, train_loader, val_loader, config, device, experiment):
+def train_classifier(model, train_loader, val_loader, config, device, experiment, model_name="modello"):
     cfg = config["train_classifier"]
 
+    class_names = config.get("class_names", [str(i) for i in range(7)])
     criterion = LabelSmoothingLoss(smoothing=0.1)
     optimizer = optim.Adam(model.parameters(), lr=cfg["learning_rate"], weight_decay=cfg.get("weight_decay", 0))
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.05, patience=5, verbose=True)
@@ -42,7 +42,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
 
         avg_loss = running_loss / len(train_loader)
         train_losses.append(avg_loss)
-        experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
+        experiment.log_metric(f"{model_name}_train_loss", avg_loss, step=epoch + 1)
 
         # Validation
         model.eval()
@@ -71,15 +71,15 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
         val_f1s.append(f1)
 
         experiment.log_metrics({
-            "val_accuracy": acc,
-            "val_precision": precision,
-            "val_recall": recall,
-            "val_f1_score": f1
+            f"{model_name}_val_accuracy": acc,
+            f"{model_name}_val_precision": precision,
+            f"{model_name}_val_recall": recall,
+            f"{model_name}_val_f1_score": f1
         }, step=epoch + 1)
 
         scheduler.step(acc)
 
-        print(f"Epoch [{epoch+1}/{cfg['epochs']}] - Loss: {avg_loss:.4f} - Acc: {acc:.4f} - Precision: {precision:.4f} - Recall: {recall:.4f} - F1: {f1:.4f}")
+        print(f"[{model_name}] Epoch [{epoch+1}/{cfg['epochs']}] - Loss: {avg_loss:.4f} - Acc: {acc:.4f} - Precision: {precision:.4f} - Recall: {recall:.4f} - F1: {f1:.4f}")
 
         if acc > best_acc:
             best_acc = acc
@@ -87,41 +87,41 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
             save_path = cfg["save_path"]
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             torch.save(model.state_dict(), save_path)
-            print(f"New best model saved with acc: {acc:.4f}")
+            print(f"[{model_name}] New best model saved with acc: {acc:.4f}")
         else:
             patience_counter += 1
             if patience_counter >= patience:
-                print(f"Early stopping triggered after {epoch+1} epochs.")
+                print(f"[{model_name}] Early stopping triggered after {epoch+1} epochs.")
                 break
 
     report = classification_report(all_labels, all_preds, output_dict=True)
     experiment.log_metrics({
-        "final_val_accuracy": report["accuracy"],
-        "final_val_precision": report["weighted avg"]["precision"],
-        "final_val_recall": report["weighted avg"]["recall"],
-        "final_val_f1_score": report["weighted avg"]["f1-score"]
+        f"{model_name}_final_val_accuracy": report["accuracy"],
+        f"{model_name}_final_val_precision": report["weighted avg"]["precision"],
+        f"{model_name}_final_val_recall": report["weighted avg"]["recall"],
+        f"{model_name}_final_val_f1_score": report["weighted avg"]["f1-score"]
     })
 
     cm = confusion_matrix(all_labels, all_preds)
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-    plt.title("Confusion Matrix")
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=class_names, yticklabels=class_names)
+    plt.title(f"Matrice di Confusione - {model_name}")
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.tight_layout()
-    confusion_matrix_path = "./reconstructions/confusion_matrix.png"
-    os.makedirs(os.path.dirname(confusion_matrix_path), exist_ok=True)
-    plt.savefig(confusion_matrix_path)
-    experiment.log_image(confusion_matrix_path)
+    cm_path = f"./reconstructions/confusion_matrix_{model_name}.png"
+    os.makedirs(os.path.dirname(cm_path), exist_ok=True)
+    plt.savefig(cm_path)
+    experiment.log_image(cm_path)
     plt.close()
 
     plt.figure()
     plt.plot(range(1, len(train_losses)+1), train_losses, marker='o')
-    plt.title("Training Loss per Epoch")
+    plt.title(f"{model_name} - Training Loss per Epoch")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.grid(True)
-    loss_curve_path = "./reconstructions/train_loss_curve.png"
+    loss_curve_path = f"./reconstructions/train_loss_curve_{model_name}.png"
     plt.savefig(loss_curve_path)
     experiment.log_image(loss_curve_path)
     plt.close()

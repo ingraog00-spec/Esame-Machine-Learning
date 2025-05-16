@@ -14,7 +14,7 @@ training:
   seed: 42
 
 train_autoencoder:
-  epochs: 5
+  epochs: 2
   learning_rate: 0.001
   weight_decay: 0.001
   patience: 5
@@ -27,9 +27,18 @@ train_classifier:
   learning_rate: 0.001
   batch_size: 32
   save_path: "./save_model_classifier/classifier.pt"
-  n_models: 1
+  n_models: 5
 
 test_classifier:
   batch_size: 32
   embeddings_path: "./save_model/embeddings.pt"
   classifier_path: "./save_model_classifier/classifier.pt"
+
+class_names:
+  - akiec
+  - bcc
+  - bkl
+  - df
+  - mel
+  - nv
+  - vasc

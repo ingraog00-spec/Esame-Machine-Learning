@@ -1,4 +1,3 @@
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import torchvision
 import torch
@@ -7,6 +6,9 @@ from collections import Counter
 import seaborn as sns
 from sklearn.manifold import TSNE
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import os
 
 def show_batch_images(images, labels, label_map, title="", experiment=None):
     grid_img = torchvision.utils.make_grid(images[:16], nrow=4, normalize=True)
@@ -83,3 +85,16 @@ def tsne_visualization(embeddings, labels, inv_label_map, experiment, title="t-S
     plt.savefig(save_path)
     experiment.log_image(save_path, name="TSNE Latent Space")
     plt.close()
+
+""" def log_bar_chart(metric_values, metric_name):
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x=model_names, y=metric_values, palette="viridis")
+    plt.title(f"{metric_name} Comparison Across Models")
+    plt.ylabel(metric_name)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    path = f"./reconstructions/{metric_name.lower()}_bar_chart.png"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path)
+    experiment.log_image(path)
+    plt.close() """

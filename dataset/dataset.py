@@ -8,12 +8,17 @@ from sklearn.model_selection import train_test_split
 
 
 class SkinLesionDataset(Dataset):
-    def __init__(self, dataframe, image_dirs, transform=None):
+    def __init__(self, dataframe, image_dirs, transform=None, minority_transform=None):
         self.df = dataframe.reset_index(drop=True)
         self.image_dirs = image_dirs
         self.transform = transform
+        self.minority_transform = minority_transform
         self.label_map = {label: idx for idx, label in enumerate(sorted(self.df['dx'].unique()))}
         self.df['label'] = self.df['dx'].map(self.label_map)
+
+        class_counts = self.df['dx'].value_counts()
+        max_count = class_counts.max()
+        self.minority_classes = class_counts[class_counts < max_count * 0.2].index.tolist()
 
     def __len__(self):
         return len(self.df)
@@ -23,7 +28,10 @@ class SkinLesionDataset(Dataset):
         image_path = self._find_image_path(row['image_id'])
 
         image = Image.open(image_path).convert("RGB")
-        if self.transform:
+
+        if row['dx'] in self.minority_classes and self.minority_transform:
+            image = self.minority_transform(image)
+        elif self.transform:
             image = self.transform(image)
 
         return image, row['label']
@@ -63,7 +71,22 @@ def get_dataloaders(config_path="config.yml"):
         transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
     ])
 
-    train_dataset = SkinLesionDataset(train_df, image_dirs, transform)
+    standard_transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
+    ])
+
+    minority_transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(20),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
+    ])
+
+    train_dataset = SkinLesionDataset(train_df, image_dirs, transform=standard_transform, minority_transform=minority_transform)
     val_dataset = SkinLesionDataset(val_df, image_dirs, transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -72,15 +95,11 @@ def get_dataloaders(config_path="config.yml"):
     return train_loader, val_loader
 
 
-def get_external_test_loader(test_image_dir, test_metadata_path, label_map, image_size, batch_size=32, num_workers=4):
-    df = pd.read_csv(test_metadata_path)
+def get_test_dataloader(test_image_dir, test_metadata_path, image_size, batch_size, num_workers):
+    df_test = pd.read_csv(test_metadata_path)
 
-    if 'image' in df.columns:
-        df.rename(columns={'image': 'image_id'}, inplace=True)
-    if 'dx' not in df.columns and 'label' in df.columns:
-        df.rename(columns={'label': 'dx'}, inplace=True)
-
-    df['label'] = df['dx'].map(label_map)
+    valid_ids = [img_id for img_id in df_test['image_id'] if os.path.exists(os.path.join(test_image_dir, img_id + ".jpg"))]
+    df_test = df_test[df_test['image_id'].isin(valid_ids)]
 
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
@@ -88,7 +107,7 @@ def get_external_test_loader(test_image_dir, test_metadata_path, label_map, imag
         transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
     ])
 
-    test_dataset = SkinLesionDataset(df, [test_image_dir], transform)
+    test_dataset = SkinLesionDataset(df_test, [test_image_dir], transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return test_loader
