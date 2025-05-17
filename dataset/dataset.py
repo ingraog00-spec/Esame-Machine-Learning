@@ -63,15 +63,14 @@ def get_dataloaders(config_path="config.yml"):
             valid_ids.append(image_id)
     df = df[df['image_id'].isin(valid_ids)]
 
-    train_df, val_df = stratified_split(df, val_split, seed)
+    train_df, val_df = train_test_split(
+        df,
+        test_size=val_split,
+        stratify=df['dx'],
+        random_state=seed
+    )
 
     transform = transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
-    ])
-
-    standard_transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
@@ -86,7 +85,7 @@ def get_dataloaders(config_path="config.yml"):
         transforms.Normalize(mean=[0.5]*3, std=[0.5]*3),
     ])
 
-    train_dataset = SkinLesionDataset(train_df, image_dirs, transform=standard_transform, minority_transform=minority_transform)
+    train_dataset = SkinLesionDataset(train_df, image_dirs, transform=transform, minority_transform=minority_transform)
     val_dataset = SkinLesionDataset(val_df, image_dirs, transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -112,11 +111,3 @@ def get_test_dataloader(test_image_dir, test_metadata_path, image_size, batch_si
 
     return test_loader
 
-def stratified_split(df, val_size, seed):
-    train_df, val_df = train_test_split(
-        df,
-        test_size=val_size,
-        stratify=df['dx'],
-        random_state=seed
-    )
-    return train_df, val_df

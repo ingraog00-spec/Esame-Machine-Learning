@@ -14,7 +14,7 @@ training:
   seed: 42
 
 train_autoencoder:
-  epochs: 50
+  epochs: 100
   learning_rate: 0.001
   weight_decay: 0.001
   patience: 5
@@ -27,7 +27,7 @@ train_classifier:
   learning_rate: 0.001
   batch_size: 32
   save_path: "./save_model_classifier/classifier.pt"
-  n_models: 10
+  n_models: 3
 
 test_classifier:
   batch_size: 32
