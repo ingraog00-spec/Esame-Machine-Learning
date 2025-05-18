@@ -72,6 +72,7 @@ Esame-Machine-Learning/
 │
 ├── utils/
 │   ├── utils.py                    # Utility e visualizzazioni
+│   ├── loss.py                     # Loss per il modello di autoencoder
 │   ├── train_autoencoder.py        # Addestramento autoencoder
 │   ├── train_classifier.py         # Addestramento classificatore
 │   ├── feature_extraction.py       # Estrazione embedding dall’autoencoder
@@ -83,9 +84,9 @@ Esame-Machine-Learning/
 ├── main_neural_net.py              # Pipeline completa per DL
 ├── main_XGB_classifier.py          # Pipeline XGBoost
 │
-├── save_model_autoencoder          # Modello autoencoder
-├── save_model_embeddings           # Modello embeddings
-├── save_model_classifier           # Modello classifier
+├── save_model_autoencoder/         # Modello autoencoder
+├── save_model_embeddings/          # Modello embeddings
+├── save_model_classifier/          # Modello classifier
 │
 ├── config.yml                      # Configurazione parametri
 ├── requirements.txt                # Librerie da scaricare
