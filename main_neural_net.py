@@ -3,40 +3,47 @@ from dataset.dataset import get_dataloaders, get_test_dataloader
 from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split, generate_graphics
 from utils.train_autoencoder import train_autoencoder
 from models.models_autoencoder import ConvConditionalVAE
-from sklearn.model_selection import StratifiedKFold
 import torch
 import yaml
 from comet_ml import Experiment
 from utils.feature_extraction import extract_embeddings
 from utils.train_classifier import train_classifier
-from models.model_classifier import Classifier, EnsembleClassifier
+from models.model_classifier import Classifier
 from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
 from utils.utils import tsne_visualization
 
 if __name__ == "__main__":
+    # Inizializzazione dell'esperimento su Comet.ml per il tracking automatico dei risultati
     experiment = Experiment()
-    experiment.set_name("Simulazione Autoencoder e Classificatore Skin Lesion Classification - Ensemble Classifier")
+    experiment.set_name("Simulazione Autoencoder e Classificatore Skin Lesion Classification")
+
+    # Caricamento del file di configurazione
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
 
+    # Creazione dei DataLoader per training e validazione
     train_loader, val_loader = get_dataloaders("config.yml")
 
+    # Estrazione della mappa delle label da indice a nome
     label_map = train_loader.dataset.label_map
     inv_label_map = {v: k for k, v in label_map.items()}
 
+    # Caricamento del DataLoader per il test set
     test_loader = get_test_dataloader(
         test_image_dir="./dataverse_files/ISIC2018_Task3_Test_Images",
         test_metadata_path="./dataverse_files/ISIC2018_Task3_Test_GroundTruth.csv",
         image_size=config['data']['image_size'],
-        batch_size=config['training']['batch_size'],
-        num_workers=config['training']['num_workers']
+        batch_size=config['train_autoencoder']['batch_size'],
+        num_workers=config['data']['num_workers']
     )
 
+    # Visualizzazione di un batch di immagini e relative label dal training
     print("- Visualizzo un batch dal train loader")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
 
+    # Analisi e visualizzazione della distribuzione delle classi nel training, validation, test set
     print("- Distribuzione delle classi nel training set:")
     plot_class_distribution(train_loader, inv_label_map, title="Distribuzione Classi - Train", experiment=experiment)
 
@@ -46,18 +53,32 @@ if __name__ == "__main__":
     print("- Distribuzione delle classi nel test set:")
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
+    # Log dettagliato dei conteggi degli split del dataset
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
+    # Inizializzazione del modello autoencoder condizionale convoluzionale,
+    # usato per l'estrazione di features latenti (embedding) dalle immagini
     autoencoder = ConvConditionalVAE(latent_dim=256, num_classes=len(label_map))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Scelta del device
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
     print(f"Using device: {device}")
 
+    # Training del modello autoencoder con i dati di training
     train_autoencoder(autoencoder, train_loader, config, device, experiment)
 
+    # Caricamento dei pesi salvati dopo il training, preparazione per estrazione embeddings
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
     autoencoder.to(device)
-    autoencoder.eval()
+    autoencoder.eval()  # Modalità evaluation: disabilita dropout e batchnorm
 
+    # Estrazione degli embeddings latenti dal modello autoencoder su train, val e test set
     print("- Estrazione degli embeddings per t-SNE")
     train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device)
     tsne_visualization(train_embeddings, train_labels, inv_label_map, experiment, "t-SNE of Train Set")
@@ -68,61 +89,54 @@ if __name__ == "__main__":
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
     tsne_visualization(test_embeddings, test_labels, inv_label_map, experiment, "t-SNE of Test Set")
 
+    # Salvataggio degli embeddings estratti
     torch.save({
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
-    }, "./save_model_embeddings/embeddings.pt")
+    }, f"{config["test_classifier"]["embeddings_path"]}")
 
-    print("Embeddings salvati in embeddings.pt")
-
+    # Conversione delle label in tensori
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)
 
+    # Creazione dei dataset combinando embeddings e label
     train_dataset = TensorDataset(train_embeddings, train_labels)
     val_dataset = TensorDataset(val_embeddings, val_labels)
     test_dataset = TensorDataset(test_embeddings, test_labels)
 
-    train_loader_cls = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader_cls = DataLoader(val_dataset, batch_size=32)
-    test_loader_cls = DataLoader(test_dataset, batch_size=32)
+    # Presa la dimensione del batch dal file di configurazione
+    batch_size_cls = config["train_classifier"]["batch_size"]
 
-    n_models = config["train_classifier"]["n_models"]
+    # Creazione dei DataLoader per training, validazione e test del classificatore
+    train_loader_cls = DataLoader(train_dataset, batch_size=batch_size_cls, shuffle=True)
+    val_loader_cls = DataLoader(val_dataset, batch_size=batch_size_cls)
+    test_loader_cls = DataLoader(test_dataset, batch_size=batch_size_cls)
+
     save_base_path = config["train_classifier"]["save_path"]
 
-    skf = StratifiedKFold(n_splits=n_models, shuffle=True, random_state=42)
-    ensemble_models = []
-    val_scores = []
+    # Inizializzazione del modello classificatore
+    model = Classifier(input_dim=256, num_classes=7)
+    model.to(device)
 
-    for i, (train_idx, val_idx) in enumerate(skf.split(train_embeddings, train_labels)):
-        print(f"\n--- Training fold {i+1}/{n_models} ---")
+    # Training del classificatore sui dati di embedding
+    metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
 
-        model = Classifier(input_dim=256, num_classes=7)
-        metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment, model_name=f"Modello_{i+1}")
+    # Salvataggio del modello classificatore
+    torch.save(model.state_dict(), f"{save_base_path}")
 
-        torch.save(model.state_dict(), f"{save_base_path}_fold{i}.pt")
-        val_scores.append(metrics)
+    # Messa in modalità eval per test
+    model.eval()
 
-        print(f"Model {i+1} | Acc: {metrics['accuracy']:.3f} | F1: {metrics['f1']:.3f}")
-
-    for i in range(n_models):
-        model = Classifier(input_dim=256, num_classes=7)
-        model.load_state_dict(torch.load(f"{save_base_path}_fold{i}.pt"))
-        model.to(device)
-        model.eval()
-        ensemble_models.append(model)
-
-    ensemble = EnsembleClassifier(ensemble_models).to(device)
-
+    # Valutazione del modello classificatore sul test set
     test_results = test_classifier(
-        model=ensemble,
+        model=model,
         data_loader=test_loader_cls,
         device=device,
         experiment=experiment,
-        title="Test Ensemble",
-        log_prefix="ensemble_test_"
-    )
+        title="Test Classifier")
 
-    generate_graphics(test_loader_cls, device, ensemble, val_scores, test_results, inv_label_map, experiment, n_models)
+    # Generazione di grafici per della valutazione finale e metriche di performance
+    generate_graphics(test_loader_cls, device, model, inv_label_map, experiment)
     print("- Generazione grafici completata!")

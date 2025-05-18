@@ -80,10 +80,12 @@ Esame-Machine-Learning/
 ├── vision_embeddings.py            # Estrazione embedding da ViT
 ├── extract_features.py             # Estrazione feature da immagini con ViT
 │
-├── main.py                         # Pipeline completa per DL
+├── main_neural_net.py              # Pipeline completa per DL
 ├── main_XGB_classifier.py          # Pipeline XGBoost
 │
-├── save_model*/                    # Modelli salvati
+├── save_model_autoencoder          # Modello autoencoder
+├── save_model_embeddings           # Modello embeddings
+├── save_model_classifier           # Modello classifier
 │
 ├── config.yml                      # Configurazione parametri
 ├── requirements.txt                # Librerie da scaricare

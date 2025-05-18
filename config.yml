@@ -7,14 +7,12 @@ data:
   val_split: 0.2
   test_image_dir: "./dataverse_files/ISIC2018_Task3_Test_Images"
   test_metadata_path: "./dataverse_files/ISIC2018_Task3_Test_GroundTruth.csv"
-
-training:
-  batch_size: 32
   num_workers: 4
   seed: 42
 
 train_autoencoder:
-  epochs: 100
+  epochs: 3
+  batch_size: 32
   learning_rate: 0.001
   weight_decay: 0.001
   patience: 5
@@ -23,15 +21,15 @@ train_autoencoder:
   save_reconstruction: "./reconstructions"
 
 train_classifier:
-  epochs: 50
+  epochs: 5
   learning_rate: 0.001
+  weight_decay: 0.001
   batch_size: 32
   save_path: "./save_model_classifier/classifier.pt"
-  n_models: 3
 
 test_classifier:
   batch_size: 32
-  embeddings_path: "./save_model/embeddings.pt"
+  embeddings_path: "./save_model_embeddings/embeddings.pt"
   classifier_path: "./save_model_classifier/classifier.pt"
 
 class_names:
