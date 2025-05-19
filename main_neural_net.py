@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
-    }, f"{config["test_classifier"]["embeddings_path"]}")
+    }, f"{config['test_classifier']['embeddings_path']}")
 
     print_section("Preparazione Dati per Classificatore")
     # Conversione delle label in tensori
