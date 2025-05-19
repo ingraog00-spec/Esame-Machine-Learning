@@ -79,6 +79,22 @@ def get_dataloaders(config_path="config.yml"):
         random_state=seed
     )
 
+    # ------------------ OVERSAMPLING DELLE CLASSI MINORITARIE ------------------
+    class_counts = train_df['dx'].value_counts()
+    max_count = class_counts.max()
+    minority_classes = class_counts[class_counts < max_count * 0.2].index.tolist()
+
+    oversampled_rows = []
+    for cls in minority_classes:
+        cls_rows = train_df[train_df['dx'] == cls]
+        n_to_add = max_count - len(cls_rows)
+        oversampled = cls_rows.sample(n=n_to_add, replace=True, random_state=seed)
+        oversampled_rows.append(oversampled)
+
+    if oversampled_rows:
+        train_df = pd.concat([train_df] + oversampled_rows).reset_index(drop=True)
+
+
     # Trasformazione standard per tutte le immagini
     transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),

@@ -51,7 +51,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             x_reconstructed, mu, logvar, _ = model(images, labels)
 
             # Calcolo della loss
-            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=2)
+            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=10)
 
             # Azzeramento dei gradienti
             optimizer.zero_grad()
@@ -97,7 +97,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             # Log immagine su Comet
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction")
 
-        log_latent_space(model, dataloader, device, labels, experiment, epoch, save_path="./images/latent_spaces/")
+        # log_latent_space(model, dataloader, device, labels, experiment, epoch, save_path="./images/latent_spaces/")
 
         # Attivazione early stopping se il modello non migliora per un numero di epoche consecutivo pari alla pazienza
         if counter >= patience:
