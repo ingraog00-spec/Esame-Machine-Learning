@@ -73,6 +73,12 @@ def log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_
             print(f"  {label_name} ({class_id}): {count}")
             experiment.log_metric(f"{split_name}_count_{label_name}", count)
 
+def print_section(title):
+    print("\n" + "="*60)
+    print(f"{title}")
+    print("="*60 + "\n")
+
+
 def tsne_visualization(embeddings, labels, inv_label_map, experiment, title="t-SNE of Latent Space"):
     # -- Visualizza le embedding tramite t-SNE per riduzione dimensionale --
     tsne = TSNE(n_components=2, perplexity=30, max_iter=1000, random_state=42)
