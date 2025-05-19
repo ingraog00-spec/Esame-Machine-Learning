@@ -27,7 +27,6 @@ def show_batch_images(images, labels, label_map, title="", experiment=None):
         buf.seek(0)
         experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
         buf.close()
-    plt.show()
     plt.close()
 
 def plot_class_distribution(loader, label_map, title="Distribuzione Classi", experiment=None):
@@ -53,7 +52,6 @@ def plot_class_distribution(loader, label_map, title="Distribuzione Classi", exp
         buf.seek(0)
         experiment.log_image(buf, name=f"{title.replace(' ', '_')}.png")
         buf.close()
-    plt.show()
     plt.close()
 
 def count_class_distribution(loader):
@@ -115,15 +113,21 @@ def generate_graphics(test_loader_cls, device, model, class_names, experiment):
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
+    class_labels = [class_names[i] for i in range(len(class_names))]
     # Matrice di confusione
     cm = confusion_matrix(all_labels, all_preds)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-    disp.plot(cmap="Blues", values_format=".0f")
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='.0f', cmap='Blues',
+                xticklabels=class_labels,
+                yticklabels=class_labels)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
     plt.title("Matrice di Confusione - Test Set")
     plt.tight_layout()
     plt.savefig("./images/confusion_matrix.png")
     experiment.log_image("./images/confusion_matrix.png")
     plt.close()
+
 
     # precision, recall, f1-score per ogni classe
     report = classification_report(all_labels, all_preds, output_dict=True)

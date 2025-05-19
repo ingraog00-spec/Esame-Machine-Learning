@@ -5,6 +5,8 @@ from torchvision.utils import save_image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.loss import vae_loss
+import numpy as np
+from sklearn.manifold import TSNE
 import comet_ml
 
 def train_autoencoder(model, dataloader, config, device, experiment):
@@ -49,7 +51,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             x_reconstructed, mu, logvar, _ = model(images, labels)
 
             # Calcolo della loss
-            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=0.1)
+            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=2)
 
             # Azzeramento dei gradienti
             optimizer.zero_grad()
@@ -95,6 +97,8 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             # Log immagine su Comet
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction")
 
+        log_latent_space(model, dataloader, device, labels, experiment, epoch, save_path="./images/latent_spaces/")
+
         # Attivazione early stopping se il modello non migliora per un numero di epoche consecutivo pari alla pazienza
         if counter >= patience:
             print(f"\nEarly stopping triggered at epoch {epoch + 1}")
@@ -122,3 +126,42 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     else:
         # Spera di non arrivare qua!
         print("\nNessun miglioramento durante l'addestramento. Modello non salvato.")
+
+
+def log_latent_space(model, dataloader, device, inv_label_map, experiment, epoch, save_path="./images/latent_spaces"):
+    model.eval()
+    latents = []
+    labels = []
+
+    with torch.no_grad():
+        for images, lbls in dataloader:
+            images = images.to(device)
+            lbls = lbls.to(device)
+            _, mu, _, _ = model(images, lbls)
+            latents.append(mu.cpu().numpy())
+            labels.extend(lbls.cpu().numpy())
+
+    latents = np.concatenate(latents, axis=0)
+    labels = np.array(labels)
+
+    # t-SNE
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42)
+    latents_2d = tsne.fit_transform(latents)
+
+    # Etichette leggibili
+    label_names = [inv_label_map[int(l)] if int(l) in inv_label_map else str(int(l)) for l in labels]
+
+    # Plot
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(latents_2d[:, 0], latents_2d[:, 1], c=labels, cmap="tab10", alpha=0.7)
+    plt.title(f"Latent Space - Epoch {epoch + 1}")
+    plt.xlabel("Dim 1")
+    plt.ylabel("Dim 2")
+    plt.colorbar(scatter, ticks=range(len(inv_label_map)), label="Classe")
+
+    os.makedirs(save_path, exist_ok=True)
+    path = os.path.join(save_path, f"latent_epoch_{epoch + 1}.png")
+    plt.tight_layout()
+    plt.savefig(path)
+    experiment.log_image(path, name=f"Latent Space Epoch {epoch + 1}")
+    plt.close()
