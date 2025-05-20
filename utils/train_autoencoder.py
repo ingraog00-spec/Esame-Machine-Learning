@@ -47,8 +47,12 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             images = images.to(device)
             labels = labels.to(device)
 
-            # Forward pass
-            x_reconstructed, mu, logvar, _ = model(images, labels)
+            # Aggiunta di noise alle immagini
+            noisy_images = add_noise(images, noise_type=cfg.get("noise_type", "gaussian"), 
+                             noise_level=cfg.get("noise_level", 0.1))
+
+            # Forward pass con input rumoroso, ma target pulito
+            x_reconstructed, mu, logvar, _ = model(noisy_images, labels)
 
             # Calcolo della loss
             loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=10)
@@ -126,6 +130,21 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     else:
         # Spera di non arrivare qua!
         print("\nNessun miglioramento durante l'addestramento. Modello non salvato.")
+
+
+def add_noise(images, noise_type="gaussian", noise_level=0.1):
+    if noise_type == "gaussian":
+        noise = torch.randn_like(images) * noise_level
+        return torch.clamp(images + noise, -1.0, 1.0)  # Mantieni nel range [-1, 1]
+    elif noise_type == "salt_pepper":
+        prob = noise_level
+        rand = torch.rand_like(images)
+        noisy = images.clone()
+        noisy[rand < prob / 2] = -1.0     # pepper
+        noisy[rand > 1 - prob / 2] = 1.0  # salt
+        return noisy
+    else:
+        raise ValueError("Tipo di rumore non supportato")
 
 
 def log_latent_space(model, dataloader, device, inv_label_map, experiment, epoch, save_path="./images/latent_spaces"):

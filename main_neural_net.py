@@ -11,6 +11,7 @@ from utils.train_classifier import train_classifier
 from models.model_classifier import Classifier
 from torch.utils.data import DataLoader, TensorDataset
 from utils.test import test_classifier
+from utils.latent_space_valuate import evaluate_latent_space
 
 if __name__ == "__main__":
     print_section("Inizio Esperimento")
@@ -83,7 +84,20 @@ if __name__ == "__main__":
     # Caricamento dei pesi salvati dopo il training, preparazione per estrazione embeddings
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
     autoencoder.to(device)
+
+    # Valutazione qualità spazio latente
+    evaluate_latent_space(
+        model=autoencoder,
+        dataloaders={
+            "train": train_loader,
+            "test": test_loader
+        },
+        device=device,
+        class_names=["akiec", "bcc", "bkl", "df", "mel", "nv", "vasc"]
+    )
+
     autoencoder.eval()  # Modalità evaluation: disabilita dropout e batchnorm
+
 
     # Estrazione degli embeddings latenti dal modello autoencoder su train, val e test set
     print_section("Estrazione e Visualizzazione t-SNE Embeddings")

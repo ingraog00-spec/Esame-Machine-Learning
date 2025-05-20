@@ -25,3 +25,18 @@ def extract_embeddings(encoder, dataloader, device):
     embeddings_tensor = torch.cat(embeddings)
     return embeddings_tensor, labels
 
+def extract_embeddings_latent_space(model, dataloader, device):
+    model.eval()
+    zs = []
+    ys = []
+    with torch.no_grad():
+        for images, labels in dataloader:
+            images = images.to(device)
+            labels = labels.to(device)
+            _, _, _, z = model(images, labels)
+            zs.append(z.cpu())
+            ys.append(labels.cpu())
+    zs = torch.cat(zs, dim=0).numpy()
+    ys = torch.cat(ys, dim=0).numpy()
+    return zs, ys
+
