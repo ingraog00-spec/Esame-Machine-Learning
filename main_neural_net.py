@@ -61,7 +61,6 @@ if __name__ == "__main__":
     # Log dettagliato dei conteggi degli split del dataset
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
 
-
     print_section("Inizializzazione Autoencoder")
     # Inizializzazione del modello autoencoder condizionale convoluzionale,
     # usato per l'estrazione di features latenti (embedding) dalle immagini
@@ -97,7 +96,6 @@ if __name__ == "__main__":
     )
 
     autoencoder.eval()  # Modalità evaluation: disabilita dropout e batchnorm
-
 
     # Estrazione degli embeddings latenti dal modello autoencoder su train, val e test set
     print_section("Estrazione e Visualizzazione t-SNE Embeddings")

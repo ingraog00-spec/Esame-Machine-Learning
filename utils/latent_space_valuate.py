@@ -10,17 +10,17 @@ def evaluate_latent_space(model, dataloaders, device, class_names=None):
     Args:
         model: il VAE già allenato
         dataloaders: dict con {"train": dl_train, "val": dl_val, "test": dl_test}
-        device: 'cuda' o 'cpu'
+        device: 'cuda' 'mps' o 'cpu'
     """
-    print("➤ Estrazione embeddings...")
+    print("Estrazione embeddings...")
     z_train, y_train = extract_embeddings_latent_space(model, dataloaders["train"], device)
     z_test, y_test = extract_embeddings_latent_space(model, dataloaders["test"], device)
 
-    print("➤ Addestramento classificatore (SVM)...")
+    print("Addestramento classificatore (SVM)...")
     clf = SVC(kernel='rbf', class_weight='balanced')  # kernel usato: gaussiano, oppure usare kernel='linear', 'poly', etc.
     clf.fit(z_train, y_train)
 
-    print("➤ Valutazione su test set...")
+    print("Valutazione su test set...")
     y_pred = clf.predict(z_test)
     
     print("\nClassification Report:")
