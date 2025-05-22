@@ -5,8 +5,7 @@ from torchvision.utils import save_image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from utils.loss import vae_loss
-import numpy as np
-from sklearn.manifold import TSNE
+from utils.latent_space_valuate import evaluate_latent_space
 import comet_ml
 
 def train_autoencoder(model, dataloader, config, device, experiment):
@@ -32,6 +31,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     best_model_wts = None     # Per salvare i pesi del modello migliore
     counter = 0               # Contatore per early stopping
     train_losses = []         # Lista per registrare la loss media per ogni epoca
+    best_sil_score = -1.0     # Per tenere traccia del miglior silhouette score ottenuto durante training
 
     # Loop principale di training
     for epoch in range(epochs):
@@ -75,20 +75,25 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         avg_loss = running_loss / len(dataloader)
         train_losses.append(avg_loss)
         print(f"\nEpoch [{epoch + 1}/{epochs}] - Avg Loss: {avg_loss:.4f}")
-
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
 
-        # --- Early Stopping ---
-        if best_loss - avg_loss > min_delta:
+        # --- Valutazione sullo spazio latente per early stopping guidato da metrica ---
+        latent_acc, latent_sil = evaluate_latent_space(model, dataloader, device)
+        experiment.log_metric("latent_accuracy", latent_acc, step=epoch + 1)
+        experiment.log_metric("latent_silhouette", latent_sil, step=epoch + 1)
+        print(f"Latent Accuracy: {latent_acc:.4f} | Silhouette Score: {latent_sil:.4f}")
+
+        # --- Early Stopping e salvataggio modello migliore ---
+        if latent_sil - best_sil_score > min_delta:
+            best_sil_score = latent_sil
             best_loss = avg_loss
-            best_model_wts = model.state_dict()  # Salvataggio pesi del modello migliore finora
-            counter = 0                          # Reset contatore di epoche senza miglioramento
+            best_model_wts = model.state_dict()
+            counter = 0
         else:
-            counter += 1                         # Incremento contatore se nessun miglioramento
-            print(f"Nessun miglioramento per {counter} epoche")
+            counter += 1
 
         # Salvataggio immagini di ricostruzione
-        model.eval()  # Modalità evaluation: disabilita dropout e batchnorm
+        model.eval()
         with torch.no_grad():
             sample_inputs = images[:8]
             sample_labels = labels[:8]
@@ -101,14 +106,12 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             # Log immagine su Comet
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction")
 
-        # log_latent_space(model, dataloader, device, labels, experiment, epoch, save_path="./images/latent_spaces/")
-
         # Attivazione early stopping se il modello non migliora per un numero di epoche consecutivo pari alla pazienza
         if counter >= patience:
             print(f"\nEarly stopping triggered at epoch {epoch + 1}")
             break
 
-    # Visualizzazione e salvataggio del grafico della curva di loss durante il training
+    # Visualizzazione della curva della loss
     if train_losses:
         plt.figure()
         plt.plot(range(1, len(train_losses) + 1), train_losses, marker='o')
@@ -122,7 +125,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         experiment.log_image(loss_curve_path)
         plt.close()
 
-    # Salvataggio finale dei pesi del modello corrispondenti alla migliore performance osservata
+    # Salvataggio del modello migliore
     if best_model_wts:
         torch.save(best_model_wts, save_path)
         experiment.log_model("best_autoencoder_model", save_path)
@@ -145,42 +148,3 @@ def add_noise(images, noise_type="gaussian", noise_level=0.1):
         return noisy
     else:
         raise ValueError("Tipo di rumore non supportato")
-
-
-def log_latent_space(model, dataloader, device, inv_label_map, experiment, epoch, save_path="./images/latent_spaces"):
-    model.eval()
-    latents = []
-    labels = []
-
-    with torch.no_grad():
-        for images, lbls in dataloader:
-            images = images.to(device)
-            lbls = lbls.to(device)
-            _, mu, _, _ = model(images, lbls)
-            latents.append(mu.cpu().numpy())
-            labels.extend(lbls.cpu().numpy())
-
-    latents = np.concatenate(latents, axis=0)
-    labels = np.array(labels)
-
-    # t-SNE
-    tsne = TSNE(n_components=2, perplexity=30, random_state=42)
-    latents_2d = tsne.fit_transform(latents)
-
-    # Etichette leggibili
-    label_names = [inv_label_map[int(l)] if int(l) in inv_label_map else str(int(l)) for l in labels]
-
-    # Plot
-    plt.figure(figsize=(8, 6))
-    scatter = plt.scatter(latents_2d[:, 0], latents_2d[:, 1], c=labels, cmap="tab10", alpha=0.7)
-    plt.title(f"Latent Space - Epoch {epoch + 1}")
-    plt.xlabel("Dim 1")
-    plt.ylabel("Dim 2")
-    plt.colorbar(scatter, ticks=range(len(inv_label_map)), label="Classe")
-
-    os.makedirs(save_path, exist_ok=True)
-    path = os.path.join(save_path, f"latent_epoch_{epoch + 1}.png")
-    plt.tight_layout()
-    plt.savefig(path)
-    experiment.log_image(path, name=f"Latent Space Epoch {epoch + 1}")
-    plt.close()

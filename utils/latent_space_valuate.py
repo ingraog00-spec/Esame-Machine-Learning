@@ -1,52 +1,37 @@
+import numpy as np
+from sklearn.manifold import TSNE
+from sklearn.metrics import silhouette_score, accuracy_score
 from sklearn.svm import SVC
-from sklearn.metrics import classification_report, confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
-import io
-from utils.feature_extraction import extract_embeddings_latent_space
-import comet_ml
+import torch
+from sklearn.preprocessing import StandardScaler
 
-def evaluate_latent_space(model, dataloaders, device, class_names=None, experiment=None):
-    """
-    Valuta lo spazio latente del VAE usando un classificatore SVM.
-    
-    Args:
-        model: il VAE già allenato
-        dataloaders: dict con {"train": dl_train, "val": dl_val, "test": dl_test}
-        device: 'cuda' 'mps' o 'cpu'
-        class_names: lista dei nomi delle classi
-        experiment: oggetto comet_ml.Experiment
-    """
-    print("Estrazione embeddings...")
-    z_train, y_train = extract_embeddings_latent_space(model, dataloaders["train"], device)
-    z_test, y_test = extract_embeddings_latent_space(model, dataloaders["test"], device)
+def evaluate_latent_space(model, dataloader, device):
+    model.eval()
+    latents = []
+    labels = []
 
-    print("Addestramento classificatore (SVM)...")
-    clf = SVC(kernel='rbf', class_weight='balanced')
-    clf.fit(z_train, y_train)
+    with torch.no_grad():
+        for images, lbls in dataloader:
+            images = images.to(device)
+            lbls = lbls.to(device)
+            _, mu, _, _ = model(images, lbls)  # Mu = media latente
+            latents.append(mu.cpu().numpy())
+            labels.extend(lbls.cpu().numpy())
 
-    print("Valutazione su test set...")
-    y_pred = clf.predict(z_test)
+    latents = np.concatenate(latents)
+    labels = np.array(labels)
 
-    print("\nClassification Report:")
-    report = classification_report(y_test, y_pred, target_names=class_names, output_dict=False)
-    print(report)
+    # Normalizzazione per classificazione e silhouette
+    scaler = StandardScaler()
+    latents_scaled = scaler.fit_transform(latents)
 
-    if experiment:
-        experiment.log_text(report, metadata={"type": "classification_report"})
+    # Classificatore ausiliario - SVM
+    clf = SVC(kernel="linear", C=1.0, random_state=42)
+    clf.fit(latents_scaled, labels)
+    preds = clf.predict(latents_scaled)
+    acc = accuracy_score(labels, preds)
 
-    # Confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", xticklabels=class_names, yticklabels=class_names, cmap="Blues")
-    plt.title("Confusion Matrix (Latent Space)")
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.tight_layout()
+    # Silhouette score
+    sil_score = silhouette_score(latents_scaled, labels)
 
-    if experiment:
-        buf = io.BytesIO()
-        plt.savefig("./images/confusion_matrix_latent_space_evaluate.png", buf)
-        buf.seek(0)
-        experiment.log_image(buf, name="confusion_matrix_latent_space_evaluate", image_format="png", step=None)
-        buf.close()
+    return acc, sil_score
