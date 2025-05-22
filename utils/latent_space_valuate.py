@@ -2,7 +2,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
-from utils.feature_extraction import extract_embeddings
+from utils.feature_extraction import extract_embeddings_latent_space
 
 def evaluate_latent_space(model, dataloaders, device, class_names=None):
     """
@@ -13,8 +13,8 @@ def evaluate_latent_space(model, dataloaders, device, class_names=None):
         device: 'cuda' 'mps' o 'cpu'
     """
     print("Estrazione embeddings...")
-    z_train, y_train = extract_embeddings(model, dataloaders["train"], device, mode="z")
-    z_test, y_test = extract_embeddings(model, dataloaders["test"], device, mode="z")
+    z_train, y_train = extract_embeddings_latent_space(model, dataloaders["train"], device)
+    z_test, y_test = extract_embeddings_latent_space(model, dataloaders["test"], device)
 
     print("Addestramento classificatore (SVM)...")
     clf = SVC(kernel='rbf', class_weight='balanced')  # kernel usato: gaussiano, oppure usare kernel='linear', 'poly', etc.

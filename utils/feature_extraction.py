@@ -1,42 +1,42 @@
 import torch
 from tqdm import tqdm
 
-def extract_embeddings(model, dataloader, device, mode="mu"):
-    """
-    Estrae rappresentazioni latenti dallo spazio latente di un VAE condizionale.
-    
-    Args:
-        model: Modello VAE
-        dataloader: Dataloader PyTorch
-        device: torch.device
-        mode: 'mu' | 'z' — indica quale embedding estrarre
-    
-    Returns:
-        embeddings: array numpy (n_samples, latent_dim)
-        labels: array numpy (n_samples,)
-    """
-    assert mode in ["mu", "z"], "mode deve essere 'mu' o 'z'"
-    
-    model.eval()
+def extract_embeddings(encoder, dataloader, device):
+    # Imposta l'encoder in modalità valutazione (eval)
+    encoder.eval()
     embeddings = []
     labels = []
-    
+
+    # Disabilita il calcolo dei gradienti
     with torch.no_grad():
+        # Itera sul dataloader mostrando una barra di avanzamento
         for images, lbls in tqdm(dataloader, desc="Estrazione embeddings"):
+            # Sposta immagini e label sul device specificato (CPU/GPU)
             images = images.to(device)
-            lbls = lbls.to(device)
-            
-            if mode == "mu": # mode == "mu", estrae l'embedding mu
-                mu, _ = model.encode(images, lbls)
-                emb = mu
-            else:  # mode == "z", estrae l'embedding z cioè lo spazio latente
-                _, _, _, z = model(images, lbls)
-                emb = z
-            
-            embeddings.append(emb.cpu())
-            labels.append(lbls.cpu())
-    
-    embeddings_tensor = torch.cat(embeddings, dim=0).numpy()
-    labels_array = torch.cat(labels, dim=0).numpy()
-    
-    return embeddings_tensor, labels_array
+            lbls_tensor = lbls.to(device)
+            # Passa immagini e label attraverso l'encoder per ottenere gli embeddings (mu)
+            mu, _ = encoder.encode(images, lbls_tensor)
+            # Salva gli embeddings sulla CPU
+            embeddings.append(mu.cpu())
+            # Salva le label come array numpy
+            labels.extend(lbls.cpu().numpy())
+
+    # Concatena tutti gli embeddings in un unico tensore
+    embeddings_tensor = torch.cat(embeddings)
+    return embeddings_tensor, labels
+
+def extract_embeddings_latent_space(model, dataloader, device):
+    model.eval()
+    zs = []
+    ys = []
+    with torch.no_grad():
+        for images, labels in tqdm(dataloader, desc="Estrazione embeddings latent space"):
+            images = images.to(device)
+            labels = labels.to(device)
+            _, _, _, z = model(images, labels)
+            zs.append(z.cpu())
+            ys.append(labels.cpu())
+    zs = torch.cat(zs, dim=0).numpy()
+    ys = torch.cat(ys, dim=0).numpy()
+    return zs, ys
+

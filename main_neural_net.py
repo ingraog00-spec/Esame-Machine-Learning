@@ -99,13 +99,13 @@ if __name__ == "__main__":
 
     # Estrazione degli embeddings latenti dal modello autoencoder su train, val e test set
     print_section("Estrazione e Visualizzazione t-SNE Embeddings")
-    train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device, mode="mu")
+    train_embeddings, train_labels = extract_embeddings(autoencoder, train_loader, device)
     tsne_visualization(train_embeddings, train_labels, inv_label_map, experiment, "t-SNE of Train Set")
 
-    val_embeddings, val_labels = extract_embeddings(autoencoder, val_loader, device, mode="mu")
+    val_embeddings, val_labels = extract_embeddings(autoencoder, val_loader, device)
     tsne_visualization(val_embeddings, val_labels, inv_label_map, experiment, "t-SNE of Validation Set")
 
-    test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device, mode="mu")
+    test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
     tsne_visualization(test_embeddings, test_labels, inv_label_map, experiment, "t-SNE of Test Set")
 
     print("Salvataggio embeddings...")
