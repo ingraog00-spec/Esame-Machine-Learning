@@ -11,7 +11,7 @@ data:
   seed: 42
 
 train_autoencoder:
-  epochs: 30
+  epochs: 1
   batch_size: 32
   learning_rate: 0.001
   weight_decay: 0.001
