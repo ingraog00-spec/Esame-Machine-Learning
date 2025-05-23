@@ -84,9 +84,9 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         print(f"Latent Accuracy: {latent_acc:.4f} | Silhouette Score: {latent_sil:.4f}")
 
         # --- Early Stopping e salvataggio modello migliore ---
-        if latent_sil - best_sil_score > min_delta:
-            best_sil_score = latent_sil
-            best_loss = avg_loss
+        composite_score = -avg_loss + 10.0 * latent_sil  # alpha=1.0, beta=10.0
+        if composite_score - best_loss > min_delta:
+            best_loss = composite_score
             best_model_wts = model.state_dict()
             counter = 0
         else:

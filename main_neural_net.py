@@ -14,18 +14,20 @@ from utils.test import test_classifier
 
 if __name__ == "__main__":
     print_section("Inizio Esperimento")
+
     # Inizializzazione dell'esperimento su Comet.ml per il tracking automatico dei risultati
     experiment = Experiment()
+
     # Simulazione Autoencoder e Classificatore Skin Lesion Classification
     experiment.set_name("test")
 
-    print_section("Caricamento Configurazione")
     # Caricamento del file di configurazione
+    print_section("Caricamento Configurazione")
     with open("config.yml", "r") as f:
         config = yaml.safe_load(f)
     
-    print_section("Preparazione Dataset e DataLoader")
     # Creazione dei DataLoader per training e validazione
+    print_section("Preparazione Dataset e DataLoader")
     train_loader, val_loader = get_dataloaders("config.yml")
 
     # Estrazione della mappa delle label da indice a nome
@@ -61,9 +63,10 @@ if __name__ == "__main__":
     log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
 
     print_section("Inizializzazione Autoencoder")
+
     # Inizializzazione del modello autoencoder condizionale convoluzionale,
     # usato per l'estrazione di features latenti (embedding) dalle immagini
-    autoencoder = ConvConditionalVAE(latent_dim=256, num_classes=len(label_map))
+    autoencoder = ConvConditionalVAE(latent_dim=config['latent_dim'], num_classes=len(label_map))
 
     # Scelta del device
     if torch.cuda.is_available():
@@ -74,8 +77,8 @@ if __name__ == "__main__":
         device = torch.device("cpu")
     print(f"Device utilizzato: {device}")
 
-    print_section("Training Autoencoder")
     # Training del modello autoencoder con i dati di training
+    print_section("Training Autoencoder")
     train_autoencoder(autoencoder, train_loader, config, device, experiment)
     print("Autoencoder allenato. Caricamento pesi salvati...")
 
@@ -95,16 +98,16 @@ if __name__ == "__main__":
     test_embeddings, test_labels = extract_embeddings(autoencoder, test_loader, device)
     tsne_visualization(test_embeddings, test_labels, inv_label_map, experiment, "t-SNE of Test Set")
 
-    print("Salvataggio embeddings...")
     # Salvataggio degli embeddings estratti
+    print("Salvataggio embeddings...")
     torch.save({
         "train": (train_embeddings, train_labels),
         "val": (val_embeddings, val_labels),
         "test": (test_embeddings, test_labels)
     }, f"{config['test_classifier']['embeddings_path']}")
 
-    print_section("Preparazione Dati per Classificatore")
     # Conversione delle label in tensori
+    print_section("Preparazione Dati per Classificatore")
     train_labels = torch.tensor(train_labels)
     val_labels = torch.tensor(val_labels)
     test_labels = torch.tensor(test_labels)
@@ -124,20 +127,20 @@ if __name__ == "__main__":
 
     save_base_path = config["train_classifier"]["save_path"]
 
-    print_section("Training Classificatore")
     # Inizializzazione del modello classificatore
-    model = Classifier(input_dim=256, num_classes=7)
+    print_section("Training Classificatore")
+    model = Classifier(input_dim=config['latent_dim'], num_classes=7)
     model.to(device)
 
     # Training del classificatore sui dati di embedding
     metrics = train_classifier(model, train_loader_cls, val_loader_cls, config, device, experiment)
 
-    print("Salvataggio modello classificatore...")
     # Salvataggio del modello classificatore
+    print("Salvataggio modello classificatore...")
     torch.save(model.state_dict(), f"{save_base_path}")
 
-    print_section("Valutazione del Classificatore sul Test Set")
     # Messa in modalità eval per test
+    print_section("Valutazione del Classificatore sul Test Set")
     model.eval()
 
     # Valutazione del modello classificatore sul test set
@@ -148,8 +151,8 @@ if __name__ == "__main__":
         experiment=experiment,
         title="Test Classifier")
 
-    print_section("Generazione Grafici Finali")
     # Generazione di grafici per della valutazione finale e metriche di performance
+    print_section("Generazione Grafici Finali")
     generate_graphics(test_loader_cls, device, model, inv_label_map, experiment)
     
     print("Fine processo. Tutto completato con successo!")

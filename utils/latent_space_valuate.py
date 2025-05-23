@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score, accuracy_score
 from sklearn.svm import SVC
 import torch
