@@ -27,11 +27,10 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     model.to(device)  # Spostamento modello sul device (CPU-GPU-MPS)
 
-    best_loss = float("inf")  # Per tenere traccia della migliore loss ottenuta durante training
-    best_model_wts = None     # Per salvare i pesi del modello migliore
-    counter = 0               # Contatore per early stopping
-    train_losses = []         # Lista per registrare la loss media per ogni epoca
-    best_sil_score = -1.0     # Per tenere traccia del miglior silhouette score ottenuto durante training
+    best_score = float("inf")           # Per tenere traccia della migliore loss ottenuta durante training
+    best_model_wts = model.state_dict() # Per salvare i pesi del modello migliore
+    counter = 0                         # Contatore per early stopping
+    train_losses = []                   # Lista per registrare la loss media per ogni epoca
 
     # Loop principale di training
     for epoch in range(epochs):
@@ -85,8 +84,8 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
         # --- Early Stopping e salvataggio modello migliore ---
         composite_score = -avg_loss + 10.0 * latent_sil  # alpha=1.0, beta=10.0
-        if composite_score - best_loss > min_delta:
-            best_loss = composite_score
+        if composite_score - best_score > min_delta:
+            best_score = composite_score
             best_model_wts = model.state_dict()
             counter = 0
         else:
@@ -129,10 +128,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     if best_model_wts:
         torch.save(best_model_wts, save_path)
         experiment.log_model("best_autoencoder_model", save_path)
-        print(f"\nAddestramento completato. Miglior modello salvato in: {save_path} (loss: {best_loss:.4f})")
-    else:
-        # Spera di non arrivare qua!
-        print("\nNessun miglioramento durante l'addestramento. Modello non salvato.")
+        print(f"\nAddestramento completato. Miglior modello salvato in: {save_path} (loss: {best_score:.4f})")
 
 
 def add_noise(images, noise_type="gaussian", noise_level=0.1):

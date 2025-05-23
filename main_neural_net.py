@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # Caricamento dei pesi salvati dopo il training, preparazione per estrazione embeddings
     autoencoder.load_state_dict(torch.load(config["train_autoencoder"]["save_path"]))
     autoencoder.to(device)
-    autoencoder.eval()  # Modalità evaluation: disabilita dropout e batchnorm
+    autoencoder.eval()    # Modalità evaluation: disabilita dropout e batchnorm
 
     # Estrazione degli embeddings latenti dal modello autoencoder su train, val e test set
     print_section("Estrazione e Visualizzazione t-SNE Embeddings")
