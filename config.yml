@@ -11,19 +11,19 @@ data:
   seed: 42
 
 train_autoencoder:
-  epochs: 1
+  epochs: 100
   batch_size: 32
   learning_rate: 0.01
   weight_decay: 0.001
-  patience: 5
-  min_delta: 0.0001
-  noise_type: "gaussian"
+  patience: 10
+  freeze_decoder_every_n: 5
+  min_delta: 0.001
   noise_level: 0.3
   save_path: "./save_model_autoencoder/autoencoder.pt"
   save_reconstruction: "./reconstructions"
 
 train_classifier:
-  epochs: 30
+  epochs: 100
   learning_rate: 0.001
   weight_decay: 0.001
   batch_size: 32

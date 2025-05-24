@@ -153,7 +153,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.tight_layout()
-    cm_path = f"./reconstructions/confusion_matrix_classifier.png"
+    cm_path = f"./images/confusion_matrix_classifier.png"
     os.makedirs(os.path.dirname(cm_path), exist_ok=True)
     plt.savefig(cm_path)
     experiment.log_image(cm_path)
@@ -166,7 +166,7 @@ def train_classifier(model, train_loader, val_loader, config, device, experiment
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.grid(True)
-    loss_curve_path = f"./reconstructions/train_loss_curve_classifier.png"
+    loss_curve_path = f"./images/train_loss_curve_classifier.png"
     plt.savefig(loss_curve_path)
     experiment.log_image(loss_curve_path)
     plt.close()

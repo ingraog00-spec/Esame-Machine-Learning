@@ -25,7 +25,7 @@ def evaluate_latent_space(model, dataloader, device):
     latents_scaled = scaler.fit_transform(latents)
 
     # Classificatore ausiliario - SVM
-    clf = SVC(kernel="linear", C=1.0, random_state=42)
+    clf = SVC(kernel="rbf", C=1.0, random_state=42)
     clf.fit(latents_scaled, labels)
     preds = clf.predict(latents_scaled)
     acc = accuracy_score(labels, preds)
