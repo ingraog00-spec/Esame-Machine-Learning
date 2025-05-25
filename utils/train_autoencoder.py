@@ -20,7 +20,10 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     min_delta = cfg.get("min_delta", 0.01)
     save_path = cfg.get("save_path", "autoencoder.pt")
     save_reconstructions = cfg.get("save_reconstructions", "reconstructions/")
-    freeze_every_n = cfg.get("freeze_decoder_every_n", 3)
+    freeze_patience = cfg.get("freeze_patience", 3)
+    beta_max = cfg.get("beta_max", 10)
+    kl_warmup_epochs = cfg.get("kl_warmup_epochs", 10)
+    sil_weight = cfg.get("silhouette_weight", 100)
 
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     model.to(device)
@@ -29,24 +32,37 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     best_model_wts = model.state_dict()
     counter = 0
     train_losses = []
+    kl_losses_per_epoch = []
+    decoder_frozen = False
+    recon_loss_history = []
 
     for epoch in range(epochs):
         model.train()
+        kl_epoch = []
         running_loss = 0.0
 
-        # Freeze decoder ogni n epoche
-        if (epoch + 1) % freeze_every_n == 0:
-            print(f"Epoch {epoch+1}: FREEZING decoder")
-            for param in model.decoder_input.parameters():
-                param.requires_grad = False
-            for param in model.decoder_conv.parameters():
-                param.requires_grad = False
-        else:
-            for param in model.decoder_input.parameters():
-                param.requires_grad = True
-            for param in model.decoder_conv.parameters():
-                param.requires_grad = True
+        beta = min(beta_max, (epoch + 1) / kl_warmup_epochs * beta_max)
 
+        if len(recon_loss_history) >= freeze_patience:
+            recent_losses = recon_loss_history[-freeze_patience:]
+            if all(loss >= recent_losses[0] for loss in recent_losses[1:]):
+                if not decoder_frozen:
+                    print(f"Epoch {epoch + 1}: FREEZING decoder (reconstruction loss plateau)")
+                    for param in model.decoder_input.parameters():
+                        param.requires_grad = False
+                    for param in model.decoder_conv.parameters():
+                        param.requires_grad = False
+                    decoder_frozen = True
+            else:
+                if decoder_frozen:
+                    print(f"Epoch {epoch + 1}: UNFREEZING decoder")
+                    for param in model.decoder_input.parameters():
+                        param.requires_grad = True
+                    for param in model.decoder_conv.parameters():
+                        param.requires_grad = True
+                    decoder_frozen = False
+
+        if decoder_frozen:
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
                 lr=lr,
@@ -63,11 +79,13 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
             x_reconstructed, mu, logvar, _ = model(noisy_images, labels)
 
-            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=10)
+            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=beta)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            kl_epoch.append(kl_loss.item())
 
             running_loss += loss.item()
 
@@ -76,17 +94,22 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         avg_loss = running_loss / len(dataloader)
         avg_loss = torch.log(torch.tensor(avg_loss))
         train_losses.append(avg_loss)
-        print(f"\nEpoch [{epoch + 1}/{epochs}] - Avg Loss: {avg_loss:.4f}")
+        recon_loss_history.append(recon_loss.item())
+
+        avg_kl_loss = sum(kl_epoch) / len(kl_epoch)
+        kl_losses_per_epoch.append(avg_kl_loss)
+        experiment.log_metric("avg_kl_loss", avg_kl_loss, step=epoch + 1)
+
+        print(f"\nEpoch [{epoch + 1}/{epochs}] - Log Avg Loss: {avg_loss:.4f} | β: {beta:.2f}")
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
+        experiment.log_metric("kl_beta", beta, step=epoch + 1)
 
-        latent_acc, latent_sil = evaluate_latent_space(model, dataloader, device)
-        experiment.log_metric("latent_accuracy", latent_acc, step=epoch + 1)
+        latent_sil = evaluate_latent_space(model, dataloader, device, experiment, epoch + 1, "./images/latent_space")
         experiment.log_metric("latent_silhouette", latent_sil, step=epoch + 1)
-        print(f"Latent Accuracy: {latent_acc:.4f} | Silhouette Score: {latent_sil:.4f}")
 
-        composite_score = -avg_loss + 100 * latent_sil
+        composite_score = -avg_loss + sil_weight * latent_sil
         if composite_score - best_score > min_delta:
-            print(f"Nuovo miglior modello trovato (loss: {composite_score:.4f} > {best_score:.4f})")
+            print(f"Nuovo miglior modello trovato (score: {composite_score:.4f} > {best_score:.4f})")
             best_score = composite_score
             best_model_wts = model.state_dict()
             counter = 0
@@ -127,6 +150,19 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         torch.save(best_model_wts, save_path)
         experiment.log_model("best_autoencoder_model", save_path)
         print(f"\nAddestramento completato. Miglior modello salvato in: {save_path} (loss: {best_score:.4f})")
+
+    if kl_losses_per_epoch:
+        plt.figure()
+        plt.plot(range(1, len(kl_losses_per_epoch) + 1), kl_losses_per_epoch, marker='x', color='orange')
+        plt.title("KL Divergence per Epoch")
+        plt.xlabel("Epoch")
+        plt.ylabel("Average KL Divergence")
+        plt.grid(True)
+        plt.tight_layout()
+        kl_curve_path = os.path.join("./images", "kl_loss_curve.png")
+        plt.savefig(kl_curve_path)
+        experiment.log_image(kl_curve_path)
+        plt.close()
 
 def add_noise(images, noise_level=0.1):
     noise = torch.randn_like(images) * noise_level

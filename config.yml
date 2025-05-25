@@ -11,12 +11,15 @@ data:
   seed: 42
 
 train_autoencoder:
-  epochs: 100
+  epochs: 1
   batch_size: 32
   learning_rate: 0.01
   weight_decay: 0.001
   patience: 10
-  freeze_decoder_every_n: 5
+  beta_max: 10
+  silhouette_weight: 100
+  kl_warmup_epochs: 10
+  freeze_patience: 3
   min_delta: 0.001
   noise_level: 0.3
   save_path: "./save_model_autoencoder/autoencoder.pt"
