@@ -1,11 +1,17 @@
+import os
+os.environ["OPENBLAS_NUM_THREADS"] = "4"
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["MKL_NUM_THREADS"] = "4"
+os.environ["NUMEXPR_NUM_THREADS"] = "4"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
 import comet_ml
 import torch
+torch.set_num_threads(4)
 import torch.optim as optim
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report, precision_score, recall_score, f1_score
-import os
 from models.model_classifier import LabelSmoothingLoss
 
 def train_classifier(model, train_loader, val_loader, config, device, experiment):

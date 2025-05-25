@@ -1,5 +1,11 @@
 import os
+os.environ["OPENBLAS_NUM_THREADS"] = "4"
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["MKL_NUM_THREADS"] = "4"
+os.environ["NUMEXPR_NUM_THREADS"] = "4"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
 import torch
+torch.set_num_threads(4)
 import torch.optim as optim
 from torchvision.utils import save_image
 from tqdm import tqdm
@@ -22,7 +28,8 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     save_reconstructions = cfg.get("save_reconstructions", "reconstructions/")
     freeze_patience = cfg.get("freeze_patience", 3)
     beta_max = cfg.get("beta_max", 10)
-    kl_warmup_epochs = cfg.get("kl_warmup_epochs", 10)
+    beta_start = cfg.get("beta_start", 1)
+    beta_increment = cfg.get("beta_increment", 2)
     sil_weight = cfg.get("silhouette_weight", 100)
 
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -41,7 +48,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         kl_epoch = []
         running_loss = 0.0
 
-        beta = min(beta_max, (epoch + 1) / kl_warmup_epochs * beta_max)
+        beta = min(beta_max, beta_start + epoch * beta_increment)
 
         if len(recon_loss_history) >= freeze_patience:
             recent_losses = recon_loss_history[-freeze_patience:]

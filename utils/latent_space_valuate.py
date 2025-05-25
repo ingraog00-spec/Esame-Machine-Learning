@@ -1,13 +1,19 @@
+import os
+os.environ["OPENBLAS_NUM_THREADS"] = "4"
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["MKL_NUM_THREADS"] = "4"
+os.environ["NUMEXPR_NUM_THREADS"] = "4"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
 import numpy as np
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 import torch
+torch.set_num_threads(4)
 from sklearn.preprocessing import StandardScaler
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import seaborn as sns
-import os
 
 def evaluate_latent_space(model, dataloader, device, experiment=None, epoch=None, save_dir="./images/latent_space"):
     model.eval()

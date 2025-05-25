@@ -1,9 +1,16 @@
+import os
+os.environ["OPENBLAS_NUM_THREADS"] = "4"
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["MKL_NUM_THREADS"] = "4"
+os.environ["NUMEXPR_NUM_THREADS"] = "4"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
 import comet_ml
+import torch
+torch.set_num_threads(4)
 from dataset.dataset import get_dataloaders, get_test_dataloader
 from utils.utils import show_batch_images, plot_class_distribution, log_class_counts_per_split, generate_graphics, tsne_visualization, print_section
 from utils.train_autoencoder import train_autoencoder
 from models.models_autoencoder import ConvConditionalVAE
-import torch
 import yaml
 from comet_ml import Experiment
 from utils.feature_extraction import extract_embeddings
