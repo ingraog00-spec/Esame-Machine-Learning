@@ -15,10 +15,11 @@ from utils.latent_space_valuate import evaluate_latent_space
 import comet_ml
 
 def train_autoencoder(model, dataloader, config, device, experiment):
-    cfg = config["train_autoencoder"]
+    cfg = config["train_autoencoder"]  # Carica le impostazioni di addestramento
 
-    experiment.log_parameters(cfg)
+    experiment.log_parameters(cfg)  # Logga gli iperparametri su Comet.ml
 
+    # Estrae gli iperparametri dal file di configurazione
     epochs = cfg["epochs"]
     lr = cfg["learning_rate"]
     weight_decay = cfg.get("weight_decay", 0)
@@ -35,9 +36,12 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     model.to(device)
 
+    # Variabili per tenere traccia del miglior modello
     best_score = -float("inf")
     best_model_wts = model.state_dict()
     counter = 0
+
+    # Per logging e controllo delle condizioni di addestramento
     train_losses = []
     kl_losses_per_epoch = []
     decoder_frozen = False
@@ -48,8 +52,10 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         kl_epoch = []
         running_loss = 0.0
 
+        # Incremento progressivo del peso beta per la perdita KL Divergence
         beta = min(beta_max, beta_start + epoch * beta_increment)
 
+        # Controllo se fare freeze del decoder in caso di plateau della loss di ricostruzione
         if len(recon_loss_history) >= freeze_patience:
             recent_losses = recon_loss_history[-freeze_patience:]
             if all(loss >= recent_losses[0] for loss in recent_losses[1:]):
@@ -69,6 +75,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
                         param.requires_grad = True
                     decoder_frozen = False
 
+        # Se il decoder è spento, aggiorna l'ottimizzatore per escluderlo
         if decoder_frozen:
             optimizer = optim.Adam(
                 filter(lambda p: p.requires_grad, model.parameters()),
@@ -76,28 +83,34 @@ def train_autoencoder(model, dataloader, config, device, experiment):
                 weight_decay=weight_decay
             )
 
+        # Barra di avanzamento per ogni batch
         progress_bar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
 
         for images, labels in progress_bar:
             images = images.to(device)
             labels = labels.to(device)
 
+            # Applica rumore alle immagini di input
             noisy_images = add_noise(images, noise_level=cfg.get("noise_level", 0.2))
 
+            # Forward pass del modello
             x_reconstructed, mu, logvar, _ = model(noisy_images, labels)
 
+            # Calcola la loss VAE
             loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=beta)
 
+            # Backpropagation e aggiornamento pesi
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
             kl_epoch.append(kl_loss.item())
-
             running_loss += loss.item()
 
+            # Aggiorna la barra
             progress_bar.set_postfix(loss=loss.item(), recon=recon_loss.item(), kl=kl_loss.item())
 
+        # Calcolo della loss media per epoca
         avg_loss = running_loss / len(dataloader)
         avg_loss = torch.log(torch.tensor(avg_loss))
         train_losses.append(avg_loss)
@@ -111,9 +124,11 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
         experiment.log_metric("kl_beta", beta, step=epoch + 1)
 
+        # Valuta la qualità dello spazio latente usando la silhouette
         latent_sil = evaluate_latent_space(model, dataloader, device, experiment, epoch + 1, "./images/latent_space")
         experiment.log_metric("latent_silhouette", latent_sil, step=epoch + 1)
 
+        # Calcolo score combinato per l'early stopping
         composite_score = -avg_loss + sil_weight * latent_sil
         if composite_score - best_score > min_delta:
             print(f"Nuovo miglior modello trovato (score: {composite_score:.4f} > {best_score:.4f})")
@@ -123,6 +138,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         else:
             counter += 1
 
+        # Salva ricostruzioni tra: input, rumore e output
         model.eval()
         with torch.no_grad():
             sample_inputs = images[:8]
@@ -136,10 +152,12 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             save_image(comparison, image_path, nrow=8)
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction_images")
 
+        # Interrompe l'addestramento se non ci sono miglioramenti per 'patience' epoche
         if counter >= patience:
             print(f"\nEarly stopping triggered at epoch {epoch + 1}")
             break
 
+    # Grafico della curva di loss
     if train_losses:
         plt.figure()
         plt.plot(range(1, len(train_losses) + 1), train_losses, marker='o')
@@ -153,11 +171,13 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         experiment.log_image(loss_curve_path)
         plt.close()
 
+    # Miglior modello ottenuto
     if best_model_wts:
         torch.save(best_model_wts, save_path)
         experiment.log_model("best_autoencoder_model", save_path)
         print(f"\nAddestramento completato. Miglior modello salvato in: {save_path} (loss: {best_score:.4f})")
 
+    # Grafico della perdita KL per epoca
     if kl_losses_per_epoch:
         plt.figure()
         plt.plot(range(1, len(kl_losses_per_epoch) + 1), kl_losses_per_epoch, marker='x', color='orange')
@@ -171,6 +191,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         experiment.log_image(kl_curve_path)
         plt.close()
 
+# Rumore gaussiano
 def add_noise(images, noise_level=0.1):
     noise = torch.randn_like(images) * noise_level
     return torch.clamp(images + noise, -1.0, 1.0)

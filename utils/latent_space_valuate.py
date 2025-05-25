@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 import torch
 torch.set_num_threads(4)
 from sklearn.preprocessing import StandardScaler
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import seaborn as sns
@@ -44,8 +44,8 @@ def evaluate_latent_space(model, dataloader, device, experiment=None, epoch=None
     sil_score = silhouette_score(latents_scaled, cluster_preds)
 
     # ------------------- VISUALIZZAZIONE LDA -------------------
-    lda = LDA(n_components=2)
-    latents_2d = lda.fit_transform(latents_scaled, labels)  # OK usare le label per visualizzare
+    pca = PCA(n_components=2)
+    latents_2d = pca.fit_transform(latents_scaled)
 
     fig, ax = plt.subplots(figsize=(10, 8))
     palette = sns.color_palette("tab20", n_colors=len(np.unique(cluster_preds)))
