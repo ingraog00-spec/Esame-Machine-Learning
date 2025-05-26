@@ -202,5 +202,6 @@ def add_noise(images, noise_level=0.1):
     noise = torch.randn_like(images) * noise_level
     return torch.clamp(images + noise, -1.0, 1.0)
 
-def sigmoid_annealing(epoch, max_beta, midpoint, steepness):
-    return float(max_beta / (1 + torch.exp(-steepness * (epoch - midpoint))))
+def sigmoid_annealing(epoch, max_beta, midpoint=10, steepness=1.0):
+    x = torch.tensor(-steepness * (epoch - midpoint), dtype=torch.float32)
+    return float(max_beta / (1 + torch.exp(x)))
