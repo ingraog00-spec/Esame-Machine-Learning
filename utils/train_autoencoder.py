@@ -10,7 +10,7 @@ import torch.optim as optim
 from torchvision.utils import save_image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from utils.loss import vae_loss
+from utils.loss import vae_loss, CenterLoss
 from utils.latent_space_valuate import evaluate_latent_space
 import comet_ml
 
@@ -29,12 +29,15 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     save_reconstructions = cfg.get("save_reconstructions", "reconstructions/")
     freeze_patience = cfg.get("freeze_patience", 3)
     beta_max = cfg.get("beta_max", 10)
-    beta_start = cfg.get("beta_start", 1)
-    beta_increment = cfg.get("beta_increment", 2)
-    sil_weight = cfg.get("silhouette_weight", 100)
+    beta_midpoint = cfg.get("beta_midpoint", 10)
+    beta_steepness = cfg.get("beta_steepness", 0.3)
+    sil_weight = cfg.get("silhouette_weight", 10)
+    lambda_center = cfg.get("center_loss_weight", 1.0)
 
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     model.to(device)
+
+    center_loss_fn = CenterLoss(num_classes=model.num_classes, feat_dim=model.latent_dim, device=device)
 
     # Variabili per tenere traccia del miglior modello
     best_score = -float("inf")
@@ -52,8 +55,8 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         kl_epoch = []
         running_loss = 0.0
 
-        # Incremento progressivo del peso beta per la perdita KL Divergence
-        beta = min(beta_max, beta_start + epoch * beta_increment)
+        # beta-annealing
+        beta = sigmoid_annealing(epoch, beta_max, midpoint=beta_midpoint, steepness=beta_steepness)
 
         # Controllo se fare freeze del decoder in caso di plateau della loss di ricostruzione
         if len(recon_loss_history) >= freeze_patience:
@@ -94,21 +97,23 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             noisy_images = add_noise(images, noise_level=cfg.get("noise_level", 0.2))
 
             # Forward pass del modello
-            x_reconstructed, mu, logvar, _ = model(noisy_images, labels)
+            x_reconstructed, mu, logvar, z = model(noisy_images, labels)
 
             # Calcola la loss VAE
-            loss, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=beta)
+            loss_vae, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=beta)
+            loss_center = center_loss_fn(z, labels)
+            total_loss = loss_vae + lambda_center * loss_center
 
             # Backpropagation e aggiornamento pesi
             optimizer.zero_grad()
-            loss.backward()
+            total_loss.backward()
             optimizer.step()
 
             kl_epoch.append(kl_loss.item())
-            running_loss += loss.item()
+            running_loss += total_loss.item()
 
             # Aggiorna la barra
-            progress_bar.set_postfix(loss=loss.item(), recon=recon_loss.item(), kl=kl_loss.item())
+            progress_bar.set_postfix(loss=total_loss.item(), recon=recon_loss.item(), kl=kl_loss.item())
 
         # Calcolo della loss media per epoca
         avg_loss = running_loss / len(dataloader)
@@ -123,6 +128,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         print(f"\nEpoch [{epoch + 1}/{epochs}] - Log Avg Loss: {avg_loss:.4f} | β: {beta:.2f}")
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
         experiment.log_metric("kl_beta", beta, step=epoch + 1)
+        experiment.log_metric("center_loss", loss_center.item(), step=epoch + 1)
 
         # Valuta la qualità dello spazio latente usando la silhouette
         latent_sil = evaluate_latent_space(model, dataloader, device, experiment, epoch + 1, "./images/latent_space")
@@ -195,3 +201,6 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 def add_noise(images, noise_level=0.1):
     noise = torch.randn_like(images) * noise_level
     return torch.clamp(images + noise, -1.0, 1.0)
+
+def sigmoid_annealing(epoch, max_beta, midpoint, steepness):
+    return float(max_beta / (1 + torch.exp(-steepness * (epoch - midpoint))))
