@@ -80,7 +80,7 @@ def get_dataloaders(config_path="config.yml"):
     )
 
     # ------------------ OVERSAMPLING DELLE CLASSI MINORITARIE ------------------
-    """ class_counts = train_df['dx'].value_counts()
+    class_counts = train_df['dx'].value_counts()
     max_count = class_counts.max()
     minority_classes = class_counts[class_counts < max_count * 0.2].index.tolist()
 
@@ -93,7 +93,6 @@ def get_dataloaders(config_path="config.yml"):
 
     if oversampled_rows:
         train_df = pd.concat([train_df] + oversampled_rows).reset_index(drop=True)
- """
 
     # Trasformazione standard per tutte le immagini
     transform = transforms.Compose([

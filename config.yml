@@ -48,4 +48,4 @@ class_names:
   - nv
   - vasc
 
-latent_dim: 64
+latent_dim: 256
