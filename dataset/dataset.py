@@ -94,18 +94,26 @@ def get_dataloaders(config_path="config.yml"):
     print(class_counts)
 
     oversampled_rows = []
+    target_ratio = 0.7  # Percentuale target per le classi minoritarie
+
     for cls in minority_classes:
         cls_rows = train_df[train_df['dx'] == cls]
-        n_to_add = max_count - len(cls_rows)
-        oversampled = cls_rows.sample(n=n_to_add, replace=True, random_state=seed)
-        oversampled_rows.append(oversampled)
-        print(f"Oversampling classe '{cls}': aggiunti {n_to_add} campioni (da {len(cls_rows)} a {len(cls_rows) + n_to_add})")
+        target_count = int(max_count * target_ratio)
+        n_to_add = max(0, target_count - len(cls_rows))
+
+        if n_to_add > 0:
+            oversampled = cls_rows.sample(n=n_to_add, replace=True, random_state=seed)
+            oversampled_rows.append(oversampled)
+            print(f"Oversampling classe '{cls}': aggiunti {n_to_add} campioni (da {len(cls_rows)} a {len(cls_rows) + n_to_add})")
+        else:
+            print(f"Classe '{cls}' ha già almeno il {int(target_ratio * 100)}% di {max_count}, nessun oversampling necessario.")
 
     if oversampled_rows:
         train_df = pd.concat([train_df] + oversampled_rows).sample(frac=1, random_state=seed).reset_index(drop=True)
 
     print("\nDistribuzione classi dopo oversampling:")
     print(train_df['dx'].value_counts())
+
 
     # Trasformazione standard per tutte le immagini
     transform = transforms.Compose([
