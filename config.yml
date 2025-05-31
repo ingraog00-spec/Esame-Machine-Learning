@@ -15,7 +15,7 @@ train_autoencoder:
   batch_size: 32
   learning_rate: 0.01
   weight_decay: 0.001
-  patience: 10
+  patience: 3
   beta_max: 50
   silhouette_weight: 10
   center_loss_weight: 1.0

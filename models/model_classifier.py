@@ -25,28 +25,28 @@ class Classifier(nn.Module):
         # STRATO DI INPUT
         self.input = nn.Sequential(
             nn.Linear(input_dim, 256),   # (B, 256) -> (B, 256)
-            nn.LayerNorm(512),
+            nn.LayerNorm(256),
             nn.ReLU(),
             nn.Dropout(0.4),
 
-            nn.Linear(512, 256),         # (B, 512) -> (B, 256)
-            nn.LayerNorm(256),
+            nn.Linear(256, 128),         # (B, 512) -> (B, 256)
+            nn.LayerNorm(128),
             nn.ReLU(),
             nn.Dropout(0.3)
         )
 
         # SEQUENZA RESIDUAL BLOCKS
         self.resblocks = nn.Sequential(
-            ResidualBlock(256, dropout=0.3),
-            ResidualBlock(256, dropout=0.3),
-            ResidualBlock(256, dropout=0.3),
-            ResidualBlock(256, dropout=0.2),
-            ResidualBlock(256, dropout=0.2),
-            ResidualBlock(256, dropout=0.2)
+            ResidualBlock(128, dropout=0.3),
+            ResidualBlock(128, dropout=0.3),
+            ResidualBlock(128, dropout=0.3),
+            ResidualBlock(128, dropout=0.2),
+            ResidualBlock(128, dropout=0.2),
+            ResidualBlock(128, dropout=0.2)
         )
 
         # STRATO DI USCITA
-        self.output = nn.Linear(256, num_classes)  # (B, 256) -> (B, 7)
+        self.output = nn.Linear(128, num_classes)  # (B, 256) -> (B, 7)
 
     def forward(self, x):
         x = self.input(x)
