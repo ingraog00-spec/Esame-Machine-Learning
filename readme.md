@@ -84,9 +84,12 @@ Esame-Machine-Learning/
 ├── main_neural_net.py              # Pipeline completa per DL
 ├── main_XGB_classifier.py          # Pipeline XGBoost
 │
-├── save_model_autoencoder/         # Modello autoencoder
-├── save_model_embeddings/          # Modello embeddings
-├── save_model_classifier/          # Modello classifier
+├── save_model_autoencoder/         # Cartella Modello autoencoder
+├── save_model_embeddings/          # Cartella Modello embeddings
+├── save_model_classifier/          # Cartella Modello classifier
+├── reconstructions/                # Cartella delle ricostruzioni
+├── images/                         # Cartella dove salvare immagini varie
+│   ├── images/latent_space/        # Cartella rappresentazioni latenti tra le epoche    
 │
 ├── config.yml                      # Configurazione parametri
 ├── requirements.txt                # Librerie da scaricare
