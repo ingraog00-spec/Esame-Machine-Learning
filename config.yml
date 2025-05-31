@@ -21,7 +21,6 @@ train_autoencoder:
   center_loss_weight: 1.0
   beta_midpoint: 10
   beta_steepness: 0.3
-  freeze_patience: 3
   min_delta: 0.001
   noise_level: 0.3
   save_path: "./save_model_autoencoder/autoencoder.pt"

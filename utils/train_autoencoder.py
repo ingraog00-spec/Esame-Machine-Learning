@@ -15,9 +15,8 @@ from utils.latent_space_valuate import evaluate_latent_space
 import comet_ml
 
 def train_autoencoder(model, dataloader, config, device, experiment):
-    cfg = config["train_autoencoder"]  # Carica le impostazioni di addestramento
-
-    experiment.log_parameters(cfg)  # Logga gli iperparametri su Comet.ml
+    cfg = config["train_autoencoder"]
+    experiment.log_parameters(cfg)
 
     # Estrae gli iperparametri dal file di configurazione
     epochs = cfg["epochs"]
@@ -27,19 +26,21 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     min_delta = cfg.get("min_delta", 0.01)
     save_path = cfg.get("save_path", "autoencoder.pt")
     save_reconstructions = cfg.get("save_reconstructions", "reconstructions/")
-    freeze_patience = cfg.get("freeze_patience", 3)
     beta_max = cfg.get("beta_max", 10)
     beta_midpoint = cfg.get("beta_midpoint", 10)
     beta_steepness = cfg.get("beta_steepness", 0.3)
     sil_weight = cfg.get("silhouette_weight", 10)
     lambda_center = cfg.get("center_loss_weight", 1.0)
 
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    model.to(device)
-
     center_loss_fn = CenterLoss(num_classes=model.num_classes, feat_dim=model.latent_dim, device=device)
 
-    # Variabili per tenere traccia del miglior modello
+    optimizer = optim.Adam(
+        list(model.parameters()) + list(center_loss_fn.parameters()),
+        lr=lr,
+        weight_decay=weight_decay
+    )
+    model.to(device)
+
     best_score = -float("inf")
     best_model_wts = model.state_dict()
     counter = 0
@@ -47,8 +48,6 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     # Per logging e controllo delle condizioni di addestramento
     train_losses = []
     kl_losses_per_epoch = []
-    decoder_frozen = False
-    recon_loss_history = []
 
     for epoch in range(epochs):
         model.train()
@@ -57,34 +56,6 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
         # beta-annealing
         beta = sigmoid_annealing(epoch, beta_max, midpoint=beta_midpoint, steepness=beta_steepness)
-
-        # Controllo se fare freeze del decoder in caso di plateau della loss di ricostruzione
-        if len(recon_loss_history) >= freeze_patience:
-            recent_losses = recon_loss_history[-freeze_patience:]
-            if all(loss >= recent_losses[0] for loss in recent_losses[1:]):
-                if not decoder_frozen:
-                    print(f"Epoch {epoch + 1}: FREEZING decoder (reconstruction loss plateau)")
-                    for param in model.decoder_input.parameters():
-                        param.requires_grad = False
-                    for param in model.decoder_conv.parameters():
-                        param.requires_grad = False
-                    decoder_frozen = True
-            else:
-                if decoder_frozen:
-                    print(f"Epoch {epoch + 1}: UNFREEZING decoder")
-                    for param in model.decoder_input.parameters():
-                        param.requires_grad = True
-                    for param in model.decoder_conv.parameters():
-                        param.requires_grad = True
-                    decoder_frozen = False
-
-        # Se il decoder è spento, aggiorna l'ottimizzatore per escluderlo
-        if decoder_frozen:
-            optimizer = optim.Adam(
-                filter(lambda p: p.requires_grad, model.parameters()),
-                lr=lr,
-                weight_decay=weight_decay
-            )
 
         # Barra di avanzamento per ogni batch
         progress_bar = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{epochs}", leave=False)
@@ -117,15 +88,13 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
         # Calcolo della loss media per epoca
         avg_loss = running_loss / len(dataloader)
-        avg_loss = torch.log(torch.tensor(avg_loss))
         train_losses.append(avg_loss)
-        recon_loss_history.append(recon_loss.item())
 
         avg_kl_loss = sum(kl_epoch) / len(kl_epoch)
         kl_losses_per_epoch.append(avg_kl_loss)
         experiment.log_metric("avg_kl_loss", avg_kl_loss, step=epoch + 1)
 
-        print(f"\nEpoch [{epoch + 1}/{epochs}] - Log Avg Loss: {avg_loss:.4f} | β: {beta:.2f}")
+        print(f"\nEpoch [{epoch + 1}/{epochs}] - Avg Loss: {avg_loss:.4f} | β: {beta:.2f}")
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
         experiment.log_metric("kl_beta", beta, step=epoch + 1)
         experiment.log_metric("center_loss", loss_center.item(), step=epoch + 1)

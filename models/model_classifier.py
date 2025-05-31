@@ -22,9 +22,9 @@ class Classifier(nn.Module):
     def __init__(self, input_dim=256, num_classes=7):
         super().__init__()
 
-        # STRATO DI INPUT: aumenta la dimensionalità a 512, poi la riporta a 256
+        # STRATO DI INPUT
         self.input = nn.Sequential(
-            nn.Linear(input_dim, 512),   # (B, 256) -> (B, 512)
+            nn.Linear(input_dim, 256),   # (B, 256) -> (B, 256)
             nn.LayerNorm(512),
             nn.ReLU(),
             nn.Dropout(0.4),
@@ -35,7 +35,7 @@ class Classifier(nn.Module):
             nn.Dropout(0.3)
         )
 
-        # SEQUENZA DI 6 RESIDUAL BLOCKS
+        # SEQUENZA RESIDUAL BLOCKS
         self.resblocks = nn.Sequential(
             ResidualBlock(256, dropout=0.3),
             ResidualBlock(256, dropout=0.3),
@@ -45,7 +45,7 @@ class Classifier(nn.Module):
             ResidualBlock(256, dropout=0.2)
         )
 
-        # STRATO DI USCITA: proietta in uno spazio con dimensione pari al numero di classi
+        # STRATO DI USCITA
         self.output = nn.Linear(256, num_classes)  # (B, 256) -> (B, 7)
 
     def forward(self, x):
