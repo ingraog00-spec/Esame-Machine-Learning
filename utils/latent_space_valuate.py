@@ -43,7 +43,7 @@ def evaluate_latent_space(model, dataloader, device, experiment=None, epoch=None
     # ------------------- SILHOUETTE -------------------
     sil_score = silhouette_score(latents_scaled, cluster_preds)
 
-    # ------------------- VISUALIZZAZIONE LDA -------------------
+    # ------------------- VISUALIZZAZIONE PCA -------------------
     pca = PCA(n_components=2)
     latents_2d = pca.fit_transform(latents_scaled)
 
@@ -63,8 +63,8 @@ def evaluate_latent_space(model, dataloader, device, experiment=None, epoch=None
     ax.set_facecolor('white')
     ax.grid(True, linestyle='--', alpha=0.4)
     ax.set_title(f"Spazio Latente (KMeans) - Epoch {epoch if epoch is not None else ''}", fontsize=16)
-    ax.set_xlabel("LDA 1", fontsize=12)
-    ax.set_ylabel("LDA 2", fontsize=12)
+    ax.set_xlabel("PCA 1", fontsize=12)
+    ax.set_ylabel("PCA 2", fontsize=12)
 
     handles, labels_ = scatter.legend_elements()
     legend = ax.legend(handles, [f"Cluster {i}" for i in range(len(handles))], 
