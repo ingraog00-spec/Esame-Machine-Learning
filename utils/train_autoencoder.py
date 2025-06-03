@@ -9,6 +9,7 @@ torch.set_num_threads(4)
 import torch.optim as optim
 from torchvision.utils import save_image
 from tqdm import tqdm
+from math import log
 import matplotlib.pyplot as plt
 from utils.loss import vae_loss, CenterLoss
 from utils.latent_space_valuate import evaluate_latent_space
@@ -88,6 +89,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
         # Calcolo della loss media per epoca
         avg_loss = running_loss / len(dataloader)
+        avg_loss = log(avg_loss)
         train_losses.append(avg_loss)
 
         avg_kl_loss = sum(kl_epoch) / len(kl_epoch)
