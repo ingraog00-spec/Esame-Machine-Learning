@@ -35,6 +35,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
 
     center_loss_fn = CenterLoss(num_classes=model.num_classes, feat_dim=model.latent_dim, device=device)
 
+    # Ottimizzatore Adam combinazione di pesi e centroidi
     optimizer = optim.Adam(
         list(model.parameters()) + list(center_loss_fn.parameters()),
         lr=lr,
