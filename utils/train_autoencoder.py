@@ -33,6 +33,9 @@ def train_autoencoder(model, dataloader, config, device, experiment):
     sil_weight = cfg.get("silhouette_weight", 10)
     lambda_center = cfg.get("center_loss_weight", 1.0)
 
+    sparsity_weight = cfg.get("sparsity_weight", 0.1)  # nuovo iperparametro
+    rho_sparsity = cfg.get("sparsity_target", 0.05)    # attivazione desiderata
+
     center_loss_fn = CenterLoss(num_classes=model.num_classes, feat_dim=model.latent_dim, device=device)
 
     # Ottimizzatore Adam combinazione di pesi e centroidi
@@ -75,7 +78,8 @@ def train_autoencoder(model, dataloader, config, device, experiment):
             # Calcola la loss VAE
             loss_vae, recon_loss, kl_loss = vae_loss(images, x_reconstructed, mu, logvar, beta=beta)
             loss_center = center_loss_fn(z, labels)
-            total_loss = loss_vae + lambda_center * loss_center
+            loss_sparsity = sparsity_loss(z, rho=rho_sparsity)
+            total_loss = loss_vae + lambda_center * loss_center + sparsity_weight * loss_sparsity
 
             # Backpropagation e aggiornamento pesi
             optimizer.zero_grad()
@@ -101,6 +105,7 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         experiment.log_metric("train_loss", avg_loss, step=epoch + 1)
         experiment.log_metric("kl_beta", beta, step=epoch + 1)
         experiment.log_metric("center_loss", loss_center.item(), step=epoch + 1)
+        experiment.log_metric("sparsity_loss", loss_sparsity.item(), step=epoch + 1)
 
         # Valuta la qualità dello spazio latente usando la silhouette
         latent_sil = evaluate_latent_space(model, dataloader, device, experiment, epoch + 1, "./images/latent_space")
@@ -119,15 +124,32 @@ def train_autoencoder(model, dataloader, config, device, experiment):
         # Salva ricostruzioni tra: input, rumore e output
         model.eval()
         with torch.no_grad():
-            sample_inputs = images[:8]
-            sample_labels = labels[:8]
+            class_examples = []
+            class_labels_found = set()
 
-            noisy_inputs = add_noise(sample_inputs, noise_level=cfg.get("noise_level", 0.2))
-            x_reconstructed, _, _, _ = model(noisy_inputs, sample_labels)
+            # Trova una immagine per ogni classe
+            for img, lbl in zip(images, labels):
+                if lbl.item() not in class_labels_found:
+                    class_examples.append((img, lbl))
+                    class_labels_found.add(lbl.item())
+                if len(class_examples) == model.num_classes:
+                    break
 
-            comparison = torch.cat([sample_inputs, noisy_inputs, x_reconstructed], dim=0)
+            if len(class_examples) < model.num_classes:
+                print(f"Attenzione: trovate solo {len(class_examples)} classi nel batch attuale.")
+
+            inputs, lbls = zip(*class_examples)
+            inputs = torch.stack(inputs).to(device)
+            lbls = torch.tensor(lbls).to(device)
+
+            noisy_inputs = add_noise(inputs, noise_level=cfg.get("noise_level", 0.2))
+            x_reconstructed, _, _, _ = model(noisy_inputs, lbls)
+
+            # Concatena: originali, noisy, ricostruiti
+            comparison = torch.cat([inputs, noisy_inputs, x_reconstructed], dim=0)
+
             image_path = os.path.join(save_reconstructions, f"epoch_{epoch + 1}_reconstruction_images.png")
-            save_image(comparison, image_path, nrow=8)
+            save_image(comparison, image_path, nrow=model.num_classes)
             experiment.log_image(image_path, name=f"epoch_{epoch + 1}_reconstruction_images")
 
         # Interrompe l'addestramento se non ci sono miglioramenti per 'patience' epoche
@@ -177,3 +199,14 @@ def add_noise(images, noise_level=0.1):
 def sigmoid_annealing(epoch, max_beta, midpoint=10, steepness=1.0):
     x = torch.tensor(-steepness * (epoch - midpoint), dtype=torch.float32)
     return float(max_beta / (1 + torch.exp(x)))
+
+def sparsity_loss(z, rho=0.05):
+    """
+    Penalizza le attivazioni latenti troppo elevate rispetto alla media desiderata rho.
+    Usa la KL divergence tra rho e la media delle attivazioni sigmoidee di z.
+    """
+    rho_hat = torch.mean(torch.sigmoid(z), dim=0)
+    rho_tensor = torch.full_like(rho_hat, rho)
+    kl_div = rho_tensor * torch.log(rho_tensor / (rho_hat + 1e-8)) + \
+             (1 - rho_tensor) * torch.log((1 - rho_tensor) / (1 - rho_hat + 1e-8))
+    return kl_div.sum()

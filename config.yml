@@ -22,9 +22,11 @@ train_autoencoder:
   beta_midpoint: 10
   beta_steepness: 0.3
   min_delta: 0.001
-  noise_level: 0.3
+  noise_level: 0.1
   save_path: "./save_model_autoencoder/autoencoder.pt"
   save_reconstruction: "./reconstructions"
+  sparsity_weight: 0.2
+  sparsity_target: 0.05
 
 train_classifier:
   epochs: 100
