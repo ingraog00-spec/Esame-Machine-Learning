@@ -12,7 +12,7 @@ data:
 
 train_autoencoder:
   epochs: 100
-  batch_size: 32
+  batch_size: 128
   learning_rate: 0.01
   weight_decay: 0.001
   patience: 10
@@ -32,11 +32,11 @@ train_classifier:
   epochs: 100
   learning_rate: 0.001
   weight_decay: 0.001
-  batch_size: 32
+  batch_size: 64
   save_path: "./save_model_classifier/classifier.pt"
 
 test_classifier:
-  batch_size: 32
+  batch_size: 64
   embeddings_path: "./save_model_embeddings/embeddings.pt"
   classifier_path: "./save_model_classifier/classifier.pt"
 

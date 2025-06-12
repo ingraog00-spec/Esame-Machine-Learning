@@ -2,10 +2,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-# CENTER LOSS: penalizza la distanza tra le feature e i centroidi della propria classe
 class CenterLoss(nn.Module):
     def __init__(self, num_classes, feat_dim, device):
         """
+        Penalizza la distanza tra le feature e i centroidi della propria classe.
         Args:
             num_classes (int): numero totale di classi
             feat_dim (int): dimensione del vettore di embedding/feature
@@ -41,6 +41,17 @@ class CenterLoss(nn.Module):
         loss = (features - centers_batch).pow(2).sum() / batch_size
 
         return loss
+
+def sparsity_loss(z, rho=0.05):
+    """
+    Penalizza le attivazioni latenti troppo elevate rispetto alla media desiderata rho.
+    Usa la KL divergence tra rho e la media delle attivazioni sigmoidee di z.
+    """
+    rho_hat = torch.mean(torch.sigmoid(z), dim=0)
+    rho_tensor = torch.full_like(rho_hat, rho)
+    kl_div = rho_tensor * torch.log(rho_tensor / (rho_hat + 1e-8)) + \
+             (1 - rho_tensor) * torch.log((1 - rho_tensor) / (1 - rho_hat + 1e-8))
+    return kl_div.sum()
 
 def vae_loss(x, x_reconstructed, mu, logvar, beta=1.0):
     """

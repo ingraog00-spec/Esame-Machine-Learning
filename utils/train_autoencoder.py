@@ -11,7 +11,7 @@ from torchvision.utils import save_image
 from tqdm import tqdm
 from math import log
 import matplotlib.pyplot as plt
-from utils.loss import vae_loss, CenterLoss
+from utils.loss import vae_loss, CenterLoss, sparsity_loss
 from utils.latent_space_valuate import evaluate_latent_space
 import comet_ml
 
@@ -200,13 +200,3 @@ def sigmoid_annealing(epoch, max_beta, midpoint=10, steepness=1.0):
     x = torch.tensor(-steepness * (epoch - midpoint), dtype=torch.float32)
     return float(max_beta / (1 + torch.exp(x)))
 
-def sparsity_loss(z, rho=0.05):
-    """
-    Penalizza le attivazioni latenti troppo elevate rispetto alla media desiderata rho.
-    Usa la KL divergence tra rho e la media delle attivazioni sigmoidee di z.
-    """
-    rho_hat = torch.mean(torch.sigmoid(z), dim=0)
-    rho_tensor = torch.full_like(rho_hat, rho)
-    kl_div = rho_tensor * torch.log(rho_tensor / (rho_hat + 1e-8)) + \
-             (1 - rho_tensor) * torch.log((1 - rho_tensor) / (1 - rho_hat + 1e-8))
-    return kl_div.sum()
