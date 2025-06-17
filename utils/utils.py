@@ -8,7 +8,7 @@ from sklearn.manifold import TSNE
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report, confusion_matrix
 import numpy as np
 
 def show_batch_images(images, labels, label_map, title="", experiment=None):

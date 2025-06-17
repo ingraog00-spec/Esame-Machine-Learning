@@ -18,6 +18,7 @@ mkdir -p save_model_autoencoder/
 mkdir -p save_model_classifier/
 mkdir -p reconstructions/
 mkdir -p images/
+mkdir -p images/latent_space/
 
 echo "Setup completato con successo!"
 

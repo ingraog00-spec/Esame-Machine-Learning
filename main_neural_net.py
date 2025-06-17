@@ -50,7 +50,7 @@ if __name__ == "__main__":
         num_workers=config['data']['num_workers']
     )
 
-    """ # Visualizzazione di un batch di immagini e relative label dal training
+    # Visualizzazione di un batch di immagini e relative label dal training
     print_section("Visualizzazione Batch Immagini")
     images, labels = next(iter(train_loader))
     show_batch_images(images, labels, inv_label_map, title="Batch di Training", experiment=experiment)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     plot_class_distribution(test_loader, inv_label_map, title="Distribuzione Classi - Test", experiment=experiment)
 
     # Log dettagliato dei conteggi degli split del dataset
-    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment) """
+    log_class_counts_per_split(train_loader, val_loader, test_loader, inv_label_map, experiment)
 
     print_section("Inizializzazione Autoencoder")
 

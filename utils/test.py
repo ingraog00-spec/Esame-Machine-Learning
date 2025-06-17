@@ -12,14 +12,16 @@ def test_classifier(model, data_loader, device, experiment=None, title="Model Ev
     # Disabilita il calcolo dei gradienti per velocizzare l'inferenza
     with torch.no_grad():
         for x_batch, y_batch in data_loader:
-            # Sposta i dati sul dispositivo specificato (CPU o GPU)
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
             outputs = model(x_batch)
+
             # Prende la classe con la probabilità più alta
             _, preds = torch.max(outputs, 1)
+
             # Conta il numero di predizioni corrette
             correct += (preds == y_batch).sum().item()
             total += y_batch.size(0)
+
             # Salva tutte le predizioni e le etichette reali per il report
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(y_batch.cpu().numpy())
@@ -31,7 +33,7 @@ def test_classifier(model, data_loader, device, experiment=None, title="Model Ev
     recall = report["weighted avg"]["recall"]
     f1 = report["weighted avg"]["f1-score"]
     
-    # Se viene passato un oggetto experiment, logga le metriche
+    # Logga le metriche
     if experiment:
         experiment.log_metric(f"{title}accuracy", acc)
         experiment.log_metrics({

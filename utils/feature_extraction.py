@@ -14,10 +14,13 @@ def extract_embeddings(encoder, dataloader, device):
             # Sposta immagini e label sul device specificato (CPU/GPU)
             images = images.to(device)
             lbls_tensor = lbls.to(device)
+
             # Passa immagini e label attraverso l'encoder per ottenere gli embeddings (mu)
             mu, _ = encoder.encode(images, lbls_tensor)
+
             # Salva gli embeddings sulla CPU
             embeddings.append(mu.cpu())
+            
             # Salva le label come array numpy
             labels.extend(lbls.cpu().numpy())
 
