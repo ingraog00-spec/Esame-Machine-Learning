@@ -161,3 +161,8 @@ Il secondo modello sfrutta **ViT (Vision Transformer)** pre-addestrato su ImageN
 | Complessità di addestramento | Medio-alta                           | Bassa (solo XGBoost viene addestrato)     |
 | Flessibilità                  | Alta: pipeline personalizzabile      | Media: feature extractor fisso            |
 | Interpretabilità              | Limitata                             | Alta (importanza delle feature)           |
+
+---
+
+### 📩 Contatti
+Per domande: [giovanni.iacuzzo@unikorestudent.it](mailto:giovanni.iacuzzo@unikorestudent.it)
