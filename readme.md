@@ -100,11 +100,15 @@ Esame-Machine-Learning/
 ---
 
 ## ⚙️ Utilizzo
+ricordare di eseguire prima il file di preparazione
+```bash
+prepare.sh
+```
 
 Per eseguire l'intera pipeline basata su rete neurale (autoencoder + classificatore):
 
 ```bash
-python main.py
+python main_neural_net.py
 ```
 
 Esecuzione pipeline XGBoost
