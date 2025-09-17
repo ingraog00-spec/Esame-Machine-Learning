@@ -100,9 +100,16 @@ Esame-Machine-Learning/
 ---
 
 ## ⚙️ Utilizzo
-ricordare di eseguire prima il file di preparazione
+ricordare di eseguire prima il file di preparazione.
+
+- Mac:
 ```bash
 prepare.sh
+```
+
+- Windows:
+```bash
+prepare.bat
 ```
 
 Per eseguire l'intera pipeline basata su rete neurale (autoencoder + classificatore):
